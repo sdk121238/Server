@@ -1,0 +1,7 @@
+.idea/
+target/
+.codex-build/
+.env
+data/
+scripts/local.ps1
+*.log

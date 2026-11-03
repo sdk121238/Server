@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:mysql://127.0.0.1:3307/derm_followup_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&allowPublicKeyRetrieval=true&sslMode=DISABLED}
+    username: ${DB_USERNAME:derm_app}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver

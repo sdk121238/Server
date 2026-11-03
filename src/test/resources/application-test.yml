@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:derm;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password: ''
+    driver-class-name: org.h2.Driver
+app:
+  signing-key: integration-tests-only-0123456789-abcdef0123456789
+  storage-root: ./target/test-objects
+  bootstrap-account: test-owner
+  bootstrap-password: Owner-test-password-928!
