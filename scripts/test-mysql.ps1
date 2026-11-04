@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $secretPath=Join-Path $projectRoot '.codex-build\mysql-dev\secrets.json'
 if(-not (Test-Path -LiteralPath $secretPath)) { throw 'Run scripts/dev-db.ps1 start first.' }

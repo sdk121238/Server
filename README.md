@@ -4,6 +4,8 @@ Java 21 + Spring Boot 3.5.16 + MySQL 8.0，基于 [接口合同](docs/backend/RE
 
 ## 本机环境与启动
 
+希望用鼠标操作时，参见 [可视化运行步骤](docs/gui-running.md)。本机IDEA已准备 `Backend Local - JAR` 运行配置。
+
 复用电脑已有的 IDEA JDK 21.0.7、IDEA Maven 3.9.9 和 MySQL 8.0.42。所有脚本只修改当前进程环境，未修改系统 JAVA_HOME、原 3306 MySQL 服务或原 root 密码。
 
 IDEA可直接打开 `pom.xml`；将项目SDK及Maven运行JRE指向已有的 `D:\搜狗高速下载\IntelliJ IDEA 2025.1.3\jbr`，不要沿用此目录原先选择的Java 27。命令行脚本已自动选择Java 21。

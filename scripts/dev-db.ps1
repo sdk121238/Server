@@ -1,4 +1,4 @@
-param([ValidateSet('start','stop','status')][string]$Action='start')
+﻿param([ValidateSet('start','stop','status')][string]$Action='start')
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $dbRoot=Join-Path $projectRoot '.codex-build\mysql-dev'
@@ -92,8 +92,15 @@ for($attempt=0;$attempt -lt 30;$attempt++) {
     $savedPassword=$env:MYSQL_PWD
     try {
         $env:MYSQL_PWD=$secrets.appPassword
-        & "$mysqlBin\mysql.exe" --no-defaults --protocol=TCP --host=127.0.0.1 "--port=$dbPort" --user=derm_app --connect-timeout=1 --database=derm_followup '--execute=SELECT 1' 2>$null | Out-Null
-        if($LASTEXITCODE -eq 0) { $ready=$true;break }
+        # Windows PowerShell 5.1 treats native stderr as an error record. A refused
+        # readiness probe is expected while MySQL starts, and must not abort the loop.
+        $savedErrorAction=$ErrorActionPreference
+        try {
+            $ErrorActionPreference='Continue'
+            & "$mysqlBin\mysql.exe" --no-defaults --protocol=TCP --host=127.0.0.1 "--port=$dbPort" --user=derm_app --connect-timeout=1 --database=derm_followup '--execute=SELECT 1' 2>$null | Out-Null
+            $probeExit=$LASTEXITCODE
+        } finally { $ErrorActionPreference=$savedErrorAction }
+        if($probeExit -eq 0) { $ready=$true;break }
     } finally { $env:MYSQL_PWD=$savedPassword }
 }
 if(-not $ready) { throw 'Project MySQL did not become ready; see .codex-build/mysql-dev/server.log. No existing service was changed.' }

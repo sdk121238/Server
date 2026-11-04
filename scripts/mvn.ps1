@@ -1,4 +1,4 @@
-param([switch]$SkipLocal,[Parameter(ValueFromRemainingArguments=$true)][string[]]$MavenArgs)
+﻿param([switch]$SkipLocal,[Parameter(ValueFromRemainingArguments=$true)][string[]]$MavenArgs)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $localConfig = Join-Path $PSScriptRoot 'local.ps1'

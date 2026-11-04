@@ -1,4 +1,4 @@
-param([ValidateSet('start','stop','status')][string]$Action='start')
+﻿param([ValidateSet('start','stop','status')][string]$Action='start')
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $statePath=Join-Path $projectRoot '.codex-build\server-process.json'
