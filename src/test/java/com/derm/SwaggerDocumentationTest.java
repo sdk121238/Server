@@ -64,7 +64,7 @@ class SwaggerDocumentationTest {
                 count++;
             }
         }
-        assertThat(count).isEqualTo(35);
+        assertThat(count).isEqualTo(36);
         assertThat(original.path("servers").get(0).path("url").asText()).contains("api.example.invalid");
         assertThat(displayed.path("paths").has("/organizations")).isFalse();
         assertThat(displayed.at("/paths/~1objects~1{objectId}/put/requestBody/content/image~1png/schema/format").asText()).isEqualTo("binary");

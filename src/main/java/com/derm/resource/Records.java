@@ -17,7 +17,9 @@ public class Records {
     public record Row(String id,String owner,String patient,long revision,ObjectNode data) {}
     private final JdbcTemplate db;
     private final Json json;
-    public Records(JdbcTemplate db,Json json) { this.db=db;this.json=json; }
+    private final com.derm.auth.AccessPolicy access;
+    public Records(JdbcTemplate db,Json json,com.derm.auth.AccessPolicy access) { this.db=db;this.json=json;this.access=access; }
+    public Row read(Kind kind,String user,String id) {return get(kind,access.readOwner(kind,user,id),id);}
     public Row get(Kind kind,String owner,String id) {
         var rows=db.queryForList("SELECT * FROM "+kind.table+" WHERE id=? AND owner_id=? AND deleted_at IS NULL",id,owner);
         if(rows.isEmpty()) throw ApiException.missing(); var row=rows.getFirst();
@@ -42,5 +44,11 @@ public class Records {
     }
     public void update(Kind kind,String owner,ObjectNode data) {
         db.update("UPDATE "+kind.table+" SET revision=?,deleted_at=?,payload=? WHERE id=? AND owner_id=?",data.get("revision").asLong(),data.path("deletedAt").isNumber()?data.get("deletedAt").asLong():null,json.write(data),data.get("id").asText(),owner);
+        if(kind==Kind.PATIENT) patientColumns(data);
     }
+    public void patientColumns(ObjectNode data) {
+        db.update("UPDATE patients SET patient_name=?,phone_number=?,gender=?,birth_year_month=?,attending_doctor_id=? WHERE id=?",
+            data.path("name").asText(),text(data,"phoneNumber"),text(data,"gender"),text(data,"birthYearMonth"),text(data,"attendingDoctorId"),data.get("id").asText());
+    }
+    private static String text(ObjectNode data,String key) {return data.hasNonNull(key)?data.get(key).asText():null;}
 }

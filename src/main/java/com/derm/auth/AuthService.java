@@ -30,6 +30,17 @@ public class AuthService {
                 UUID.randomUUID().toString(),account,normalized(account),account,hash,now,now);
         });
     }
+    /** Local maintenance only. Existing accounts are never overwritten or promoted. */
+    public String createAccount(String account,String password,String displayName,String role) {
+        checkPassword(password);
+        if(account==null||account.isBlank()||account.length()>128||displayName==null||displayName.isBlank()||displayName.length()>128||!Set.of("PATIENT","HOSPITAL_STAFF").contains(role)) throw ApiException.invalid("账号、显示名或角色无效");
+        String id=UUID.randomUUID().toString(),hash=passwords.encode(password);long now=System.currentTimeMillis();
+        try {
+            db.update("INSERT INTO users(id,account,normalized_account,display_name,password_hash,status,revision,generation,sync_position,created_at,updated_at,role) VALUES(?,?,?,?,?,'ACTIVE',1,1,0,?,?,?)",
+                id,account.trim(),normalized(account),displayName.trim(),hash,now,now,role);
+        } catch(DuplicateKeyException e) {throw new ApiException(409,"ACCOUNT_EXISTS","账号已存在，不会覆盖密码或更改角色");}
+        return id;
+    }
     public void lock(String user) {
         var rows=db.queryForList("SELECT status FROM users WHERE id=? FOR UPDATE",user);
         if(rows.isEmpty()||!"ACTIVE".equals(rows.getFirst().get("status"))) throw expired();
@@ -38,12 +49,13 @@ public class AuthService {
         return publicProfile(profileRow(user));
     }
     private Map<String,Object> profileRow(String user) {
-        var rows=db.queryForList("SELECT id,account,display_name,revision FROM users WHERE id=? AND status='ACTIVE'",user);
+        var rows=db.queryForList("SELECT id,account,display_name,revision,role FROM users WHERE id=? AND status='ACTIVE'",user);
         if(rows.isEmpty()) throw expired();return rows.getFirst();
     }
     private ObjectNode publicProfile(Map<String,Object> row) {
-        var out=json.object().put("id",row.get("id").toString()).put("account",row.get("account").toString()).put("displayName",row.get("display_name").toString()).put("role","PATIENT").putNull("organizationId");
+        var out=json.object().put("id",row.get("id").toString()).put("account",row.get("account").toString()).put("displayName",row.get("display_name").toString()).put("role",row.get("role").toString()).putNull("organizationId");
         var permissions=json.array(); for(String type:List.of("patient","lesion","capture","file")) for(String verb:List.of("create","read","write","delete")) permissions.add(type+":"+verb);
+        if("HOSPITAL_STAFF".equals(row.get("role"))) for(String type:List.of("patient","lesion","capture","file")) permissions.add(type+":read:all");
         out.set("permissions",permissions); return out;
     }
     public ApiResult me(Actor actor) {

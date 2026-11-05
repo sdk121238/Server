@@ -1,8 +1,8 @@
 # 后端接口清单与前端联调对齐表
 
-交接版本：2026-11-05 / API v1.0.0 / 个人工作区 P0。适用对象：前端设计、开发、接口测试人员。
+交接版本：2026-11-05 / API v1.1.0 / 患者与医生。适用对象：前端设计、开发、接口测试人员。
 
-**本清单反映当前实现，不将规划合同当作可用接口。** 当前有35个P0业务路由，其中任务查询暂时只有404行为；另有签名图片PUT/GET。完整规划合同中的40个P1/P2操作尚未启用。
+**本清单反映当前实现，不将规划合同当作可用接口。** 当前有36个P0业务路由，其中任务查询暂时只有404行为；另有签名图片PUT/GET。完整规划合同中的40个P1/P2操作尚未启用。
 
 ## 1. 交接内容与接入地址
 
@@ -32,7 +32,7 @@
 | 共享测试环境API基础地址 | 待双方填写；目前仅提供上述本机配置 |
 | 前端运行地址、代理或CORS方式 | 待双方填写 |
 | 手机/其他电脑访问方式 | 待双方填写，不能直接使用127.0.0.1 |
-| 测试账号交付及数据范围 | 由后端负责人提供；当前仅个人工作区 |
+| 测试账号交付及数据范围 | 由后端负责人提供；患者仅本人；医生全库只读 |
 | 后端版本、前端版本、测试日期 | API v1.0.0 / 前端待填 / 日期待填 |
 
 ## 2. 页面功能与接口对应
@@ -83,7 +83,7 @@
 - 采集时间过滤：`fromAt`包含，`toAt`不包含；两者同时给出时起点必须小于终点。
 - 分页不是冻结视图；需要一致初始数据时使用同步快照。
 
-## 4. 可联调业务接口清单（35项）
+## 4. 可联调业务接口清单（36项）
 
 类型名与 [详细字段字典](frontend-field-reference.md) 对应。路径中的 `{...Id}` 均为必填UUID。表内成功码按当前代码列出，不把规划的202分支当作已实现行为。
 
@@ -98,7 +98,7 @@
 | A05 | `PATCH /users/me` | 修改显示名 | B、V | ProfilePatch：仅displayName可编辑，1～128字符 | 200 Profile，更新资料ETag；不允许改角色、机构 |
 | A06 | `POST /users/me/password` | 修改登录密码 | B、K | PasswordChange：currentPassword、newPassword | 204；其他会话失效，当前会话保留 |
 
-登录角色当前固定PATIENT，organizationId为null；requestedRole只是提示，不能切换医院身份。访问令牌约15分钟、刷新令牌约30天有效；令牌应视为不透明字符串，不依赖JWT解码。多个请求遇到过期时只发一次刷新，刷新成功后的请求共用新令牌；重放已使用的旧refreshToken会撤销整个令牌族。
+登录角色由数据库返回PATIENT或HOSPITAL_STAFF，organizationId为null；requestedRole不能自行授予医生身份。访问令牌约15分钟、刷新令牌约30天有效；令牌应视为不透明字符串，不依赖JWT解码。多个请求遇到过期时只发一次刷新，刷新成功后的请求共用新令牌；重放已使用的旧refreshToken会撤销整个令牌族。
 
 新密码至少12字符、UTF-8不超过72字节。初始账号开通由后端受控完成，当前没有自助注册或短信找回密码入口。
 
@@ -106,10 +106,10 @@
 
 | 编号 | 方法与路径 | 用途 | 请求头 | 输入 | 当前响应 / 前端检查点 |
 |---|---|---|---|---|---|
-| P01 | `GET /patients` | 患者列表、姓名搜索 | B | Query：q?、limit?、pageToken? | 200 Page&lt;Patient&gt;；空数组为无数据 |
-| P02 | `POST /patients` | 新建患者或导入 | B、K | PatientCreate：id、name必填；birthDate?、clientCreatedAt?、importId? | 201 Patient，ETag；birthDate省略时返回null |
+| P01 | `GET /patients` | 患者列表、姓名搜索 | B | Query：q?、scope=all/mine?、limit?、pageToken? | 200 Page&lt;Patient&gt;；空数组为无数据 |
+| P02 | `POST /patients` | 新建患者或导入 | B、K | PatientCreate：id、name必填；birthDate?、phoneNumber?、gender?、birthYearMonth?、attendingDoctorId?、clientCreatedAt?、importId? | 201 Patient，ETag；birthDate省略时返回null |
 | P03 | `GET /patients/{patientId}` | 患者详情 | B | Path：patientId | 200 Patient，ETag |
-| P04 | `PATCH /patients/{patientId}` | 编辑患者 | B、V | PatientPatch：name?、birthDate? | 200 Patient，ETag；清空生日传null |
+| P04 | `PATCH /patients/{patientId}` | 编辑患者 | B、V | PatientPatch：name?、birthDate?、phoneNumber?、gender?、birthYearMonth?、attendingDoctorId? | 200 Patient，ETag；清空生日传null |
 | P05 | `DELETE /patients/{patientId}` | 删除患者及子资源 | B、V | Path：patientId；无正文 | 204；原患者、病灶、采集详情变404；同步有墓碑 |
 
 姓名1～128字符。创建请求不能传revision/createdAt/updatedAt；clientCreatedAt是可选的客户端时间输入，不替代服务端时间。软删除后的UUID不能重新创建。
@@ -194,6 +194,14 @@ confirmedPatientIds为1～100个UUID。后续创建患者/病灶/采集可带imp
 | J01 | `GET /jobs/{jobId}` | 任务查询预留 | B | Path：合法jobId；无正文 | 当前无任务，返回404 NOT_FOUND，不返回成功任务对象 |
 
 当前能力：`multipartEnabled=false`、`cloudDraftsEnabled=false`、`serverAlgorithmsEnabled=false`、`maxSyncBatch=0`、`maxPageSize=100`、`acceptedMimeTypes=["image/jpeg","image/png"]`、`maxUploadBytes=104857600`。
+
+### 4.8 医生目录（新增1项）
+
+| 编号 | 方法与路径 | 用途 | 请求头 | 输入 | 当前响应 / 前端检查点 |
+|---|---|---|---|---|---|
+| D01 | `GET /doctors` | 主治医师下拉选择 | B | q?、limit?、pageToken? | 200 DoctorPage；仅有效医生id/displayName |
+
+患者仅访问自己账号；医生可读全库患者及子记录和图片，但不能跨账号修改。`GET /patients?scope=mine`仅筛选当前医生的主治患者；默认all为全部。主治关联不改变所有权。年龄只读、按出生信息计算，所有新增字段及年月兼容规则见 [患者与医生说明](patient-doctor-guide.md)。个人同步继续只包含本人拥有的数据。
 
 ## 5. 图片二进制传输（额外2项）
 
@@ -306,7 +314,7 @@ confirmedPatientIds为1～100个UUID。后续创建患者/病灶/采集可带imp
 | 编号 | 联调项 | 验收要点 | 结果 / 请求ID |
 |---|---|---|---|
 | T01 | 地址与访问方式 | 双方使用同一后端；代理或CORS已明确；签名URL可访问 | 待填写 |
-| T02 | 登录及资料 | A01/A04成功；显示名、PATIENT角色、organizationId=null对齐 | 待填写 |
+| T02 | 登录及资料 | A01/A04成功；显示名、数据库实际角色、organizationId=null对齐 | 待填写 |
 | T03 | 未登录与错误密码 | 保护接口401；错误密码INVALID_CREDENTIALS | 待填写 |
 | T04 | 自动刷新与退出 | 同时更新双令牌；避免并发刷新；退出后保护接口401 | 待填写 |
 | T05 | 患者创建、查询、搜索 | 返回201/200；ID与列表一致；生日可空 | 待填写 |
@@ -324,7 +332,7 @@ confirmedPatientIds为1～100个UUID。后续创建患者/病灶/采集可带imp
 | T17 | 快照与增量 | 读完全部快照页取得cursor；hasMore循环、空页更新cursor | 待填写 |
 | T18 | 删除与墓碑 | 删除患者级联子资源，详情404，增量含payload=null的DELETE | 待填写 |
 | T19 | 异常提示与问题单 | 能区分401/404/409/412/422，保留X-Request-Id | 待填写 |
-| T20 | 功能边界 | 不显示短信、医院、审核、云草稿、批量push、服务器算法成功入口 | 待填写 |
+| T20 | 功能边界 | 不显示短信、机构成员、审核、云草稿、批量push、服务器算法成功入口 | 待填写 |
 | T21 | 可选旧数据导入 | confirmedPatientIds范围、importId、计划过期处理对齐 | 待填写 |
 | T22 | 可选修改密码 | 在指定测试账号执行，更新本地登录密码，其他会话失效 | 待填写 |
 
@@ -332,11 +340,11 @@ confirmedPatientIds为1～100个UUID。后续创建患者/病灶/采集可带imp
 
 | 项目 | 规划合同允许 | 当前实现 / 前端按此验收 |
 |---|---|---|
-| 操作范围 | 75个业务HTTP操作 | 35个P0路由，40个P1/P2尚未启用 |
+| 操作范围 | 76个业务HTTP操作 | 36个P0路由，40个P1/P2尚未启用 |
 | 删除患者 | 204或202异步Job | 当前同步204，不会生成任务 |
 | 完成上传 | 200 File或202 Upload | 当前同步校验，成功200 File READY |
 | 任务查询 | 存在任务时200 Job | 当前无任务，只有未知任务404 |
-| 登录角色/工作区 | 合同包含医院角色 | 当前仅PATIENT个人工作区 |
+| 登录角色/工作区 | 合同包含医院角色 | PATIENT本人数据，HOSPITAL_STAFF全库只读 |
 | 上传策略/格式 | 合同含MULTIPART、WebP | 当前仅SINGLE、JPEG/PNG |
 | 同步实体/操作 | 合同预留更多实体及ACCESS_REVOKED | 当前发出PATIENT/LESION/CAPTURE、UPSERT/DELETE |
 | 服务器地址 | 原合同使用example.invalid占位 | 在线Swagger使用当前服务；交接快照给本机地址，跨机需另约定 |

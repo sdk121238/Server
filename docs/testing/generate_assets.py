@@ -135,6 +135,11 @@ folders = [
     ], '最后执行。只操作本次创建的虚构数据；如选择直接删除患者，前两条不再需要执行。'),
 ]
 
+folders.insert(1, folder('医生选择与权限范围', [
+    request('01 查询可选主治医师', 'GET', '/doctors?limit=50', description='仅返回有效医生ID和显示名；创建患者时可选填attendingDoctorId。'),
+    request('02 医生查看全部患者', 'GET', '/patients?scope=all&limit=50', description='医生返回全库；普通患者仍仅返回本账号数据。'),
+    request('03 医生查看主治名下患者', 'GET', '/patients?scope=mine&limit=50', description='医生按主治关联筛选；普通患者始终限定本账号。'),
+]))
 contract = json.loads((ROOT / 'docs/backend/backend-v1.openapi.json').read_text(encoding='utf-8'))
 expected = {(method, path) for path, ops in contract['paths'].items() for method, op in ops.items() if isinstance(op, dict) and op.get('x-priority') == 'P0'}
 assert covered == expected, f'Coverage mismatch: missing={expected - covered}, extra={covered - expected}'
@@ -142,7 +147,7 @@ variables = {'baseUrl': 'http://127.0.0.1:8080/api/v1', 'account': 'local-owner'
 for name in ['accessToken', 'refreshToken', 'tokenExpiresAt', 'patientId', 'lesionId', 'captureId', 'patientEtag', 'lesionEtag', 'captureEtag', 'profileEtag', 'uploadId', 'fileId', 'uploadUrl', 'uploadContentType', 'downloadUrl', 'snapshotId', 'snapshotPageToken', 'syncCursor', 'clientDatasetId', 'importPatientId', 'importId', 'jobId']:
     variables[name] = ''
 collection = {
-    'info': {'name': '皮肤病随访后端 P0 调试', 'schema': 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json', 'description': '对应 docs/api-testing.md，覆盖35个P0合同操作及签名对象读写。手动按文件夹顺序发送，图片上传需选择本地文件。按需测试和清理文件夹不要直接整组运行。集合不含真实密码。'},
+    'info': {'name': '皮肤病随访后端 P0 调试', 'schema': 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json', 'description': '对应 docs/api-testing.md，覆盖36个P0合同操作及签名对象读写，包含医生选择和all/mine筛选。手动按文件夹顺序发送，图片上传需选择本地文件。按需测试和清理文件夹不要直接整组运行。集合不含真实密码。'},
     'auth': {'type': 'bearer', 'bearer': [{'key': 'token', 'value': '{{accessToken}}', 'type': 'string'}]},
     'variable': [{'key': key, 'value': value, 'type': 'string'} for key, value in variables.items()],
     'item': folders,

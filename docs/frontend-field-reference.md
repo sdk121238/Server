@@ -1,6 +1,6 @@
 # 前端联调字段字典（当前P0快照）
 
-版本：2026-11-05 / API v1.0.0。与 [接口清单](frontend-api-alignment.md) 及 [OpenAPI快照](frontend-p0.openapi.json) 配套使用。
+版本：2026-11-05 / API v1.1.0。与 [接口清单](frontend-api-alignment.md) 及 [OpenAPI快照](frontend-p0.openapi.json) 配套使用。
 
 本表从当前P0导出Schema提取，必填/可空分开列出。“必填”指该对象存在时的合同要求；可选对象省略时，不要求其子字段。Patch嵌套字段按补丁DTO递归可选，但合并后的完整资源仍须通过验证。
 
@@ -28,7 +28,7 @@
 | `id` | string (uuid) | 是 | 否 | — |
 | `account` | string | 是 | 否 | — |
 | `displayName` | string | 是 | 否 | — |
-| `role` | string | 是 | 否 | 枚举=PATIENT |
+| `role` | string | 是 | 否 | 枚举=PATIENT, HOSPITAL_STAFF |
 | `organizationId` | string (uuid) | 是 | 是 | — |
 | `permissions` | array<string> | 是 | 否 | — |
 
@@ -79,6 +79,12 @@
 | `deletedAt` | integer (int64) | 否 | 是 | >=0 |
 | `name` | string | 是 | 否 | — |
 | `birthDate` | string (date) | 是 | 是 | — |
+| `phoneNumber` | string | 否 | 是 | 最长字符=32；联系电话，可选+号及7至15位数字，空白清空 |
+| `gender` | string | 否 | 是 | 枚举=MALE, FEMALE, OTHER, UNKNOWN |
+| `birthYearMonth` | string | 否 | 是 | 格式=^[0-9]{4}-[0-9]{2}$；出生年月YYYY-MM，不得为未来年月；与birthDate同时提供时必须同月 |
+| `attendingDoctorId` | string (uuid) | 否 | 是 | 已登记有效医生ID，可空；先查询GET /doctors |
+| `age` | integer | 否 | 是 | 只读，不可提交；服务器按Asia/Shanghai当日计算；有完整生日按周岁，仅年月按整月/12，缺少出生信息为null |
+| `attendingDoctor` | NullableDoctorSummary | 否 | 否 | — |
 
 ## PatientCreate
 
@@ -89,6 +95,10 @@
 | `birthDate` | string (date) | 否 | 是 | — |
 | `clientCreatedAt` | integer (int64) | 否 | 否 | >=0 |
 | `importId` | string (uuid) | 否 | 否 | — |
+| `phoneNumber` | string | 否 | 是 | 最长字符=32；联系电话，可选+号及7至15位数字，空白清空 |
+| `gender` | string | 否 | 是 | 枚举=MALE, FEMALE, OTHER, UNKNOWN |
+| `birthYearMonth` | string | 否 | 是 | 格式=^[0-9]{4}-[0-9]{2}$；出生年月YYYY-MM，不得为未来年月；与birthDate同时提供时必须同月 |
+| `attendingDoctorId` | string (uuid) | 否 | 是 | 已登记有效医生ID，可空；先查询GET /doctors |
 
 ## PatientPatch
 
@@ -96,6 +106,10 @@
 |---|---|---|---|---|
 | `name` | string | 否 | 否 | 最短字符=1；最长字符=128 |
 | `birthDate` | string (date) | 否 | 是 | — |
+| `phoneNumber` | string | 否 | 是 | 最长字符=32；联系电话，可选+号及7至15位数字，空白清空 |
+| `gender` | string | 否 | 是 | 枚举=MALE, FEMALE, OTHER, UNKNOWN |
+| `birthYearMonth` | string | 否 | 是 | 格式=^[0-9]{4}-[0-9]{2}$；出生年月YYYY-MM，不得为未来年月；与birthDate同时提供时必须同月 |
+| `attendingDoctorId` | string (uuid) | 否 | 是 | 已登记有效医生ID，可空；先查询GET /doctors |
 
 ## Lesion
 
@@ -480,3 +494,26 @@
 |---|---|---|---|---|
 | `status` | string | 是 | 否 | 枚举=UP, DEGRADED |
 | `serverTime` | integer (int64) | 是 | 否 | >=0 |
+
+## DoctorSummary
+
+| 字段路径 | 类型 | 必填 | 允许null | 限制与说明 |
+|---|---|---|---|---|
+| `id` | string (uuid) | 是 | 否 | — |
+| `displayName` | string | 是 | 是 | — |
+| `unavailable` | boolean | 否 | 否 | — |
+
+## NullableDoctorSummary
+
+| 字段路径 | 类型 | 必填 | 允许null | 限制与说明 |
+|---|---|---|---|---|
+| `id` | string (uuid) | 是 | 否 | — |
+| `displayName` | string | 是 | 是 | — |
+| `unavailable` | boolean | 否 | 否 | — |
+
+## DoctorPage
+
+| 字段路径 | 类型 | 必填 | 允许null | 限制与说明 |
+|---|---|---|---|---|
+| `items` | array<DoctorSummary> | 是 | 否 | — |
+| `nextPageToken` | string | 是 | 是 | — |

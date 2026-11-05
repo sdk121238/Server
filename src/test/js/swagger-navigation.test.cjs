@@ -7,8 +7,8 @@ const spec = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../docs/f
 
 test('navigation lists every available operation once and omits empty planning groups', () => {
   const operations = navigation.buildOperations(spec);
-  assert.equal(operations.length, 37);
-  assert.equal(new Set(operations.map(operation => operation.key)).size, 37);
+  assert.equal(operations.length, 38);
+  assert.equal(new Set(operations.map(operation => operation.key)).size, 38);
   assert(!operations.some(operation => ['机构', '草稿', '审核'].includes(operation.tag)));
   assert.equal(operations.find(operation => operation.path === '/auth/login').requiresAuth, false);
   assert.equal(operations.find(operation => operation.method === 'GET' && operation.path === '/patients').requiresAuth, true);
@@ -23,7 +23,7 @@ test('search matches Chinese names, paths and methods together without case sens
   assert(navigation.filterOperations(operations, '患者').length > 0);
   assert(navigation.filterOperations(operations, 'GET /captures').length > 0);
   assert.equal(navigation.filterOperations(operations, 'no-such-route').length, 0);
-  assert.equal(navigation.filterOperations(operations, '   ').length, 37);
+  assert.equal(navigation.filterOperations(operations, '   ').length, 38);
 });
 
 test('deep links restore the exact operation and malformed or unknown links are harmless', () => {

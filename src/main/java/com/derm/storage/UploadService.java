@@ -59,6 +59,13 @@ public class UploadService {
         var rows=db.queryForList("SELECT patient_id,payload FROM files WHERE id=? AND owner_id=? AND state<>'DELETED'",id,owner);
         if(rows.isEmpty()) throw ApiException.missing();records.get(Kind.PATIENT,owner,rows.getFirst().get("patient_id").toString());return (ObjectNode)json.read(rows.getFirst().get("payload").toString());
     }
+    public ObjectNode readFile(String user,String id) {
+        var rows=db.queryForList("SELECT owner_id,patient_id,state FROM files WHERE id=? AND state<>'DELETED'",id);
+        if(rows.isEmpty()) throw ApiException.missing();var row=rows.getFirst();
+        if(!user.equals(row.get("owner_id"))&&!"READY".equals(row.get("state"))) throw ApiException.missing();
+        records.read(Kind.PATIENT,user,row.get("patient_id").toString());
+        return file(row.get("owner_id").toString(),id);
+    }
     public JsonNode readyFile(String owner,String id,String patient) {
         ObjectNode metadata=file(owner,id);
         String actual=db.queryForObject("SELECT patient_id FROM files WHERE id=? AND owner_id=?",String.class,id,owner);
@@ -83,7 +90,7 @@ public class UploadService {
         db.update("UPDATE file_uploads SET state='ABORTED' WHERE id=?",id);return ApiResult.empty();
     }
     public ApiResult download(Actor actor,String id) {
-        ObjectNode metadata=file(actor.userId(),id);if(!"READY".equals(metadata.get("state").asText())) throw new ApiException(409,"FILE_NOT_READY","文件尚未完成校验");
+        ObjectNode metadata=readFile(actor.userId(),id);if(!"READY".equals(metadata.get("state").asText())) throw new ApiException(409,"FILE_NOT_READY","文件尚未完成校验");
         long expires=System.currentTimeMillis()+120_000;
         ObjectNode out=json.object().put("url",signedUrl(id,actor.userId(),"download",expires)).put("expiresAt",expires);
         for(String key:List.of("sha256","sizeBytes","mimeType")) out.set(key,metadata.get(key));return ApiResult.ok(out);
@@ -109,7 +116,7 @@ public class UploadService {
         if(!id.equals(payload.path("id").asText())) throw new ApiException(403,"FORBIDDEN","下载凭证不匹配");
         String owner=payload.path("owner").asText();
         if(db.queryForObject("SELECT COUNT(*) FROM users WHERE id=? AND status='ACTIVE'",Integer.class,owner)!=1) throw ApiException.missing();
-        JsonNode metadata=file(owner,id);if(!"READY".equals(metadata.get("state").asText())) throw ApiException.missing();
+        JsonNode metadata=readFile(owner,id);if(!"READY".equals(metadata.get("state").asText())) throw ApiException.missing();
         Path path=images.path(id,".image");if(!Files.isRegularFile(path)) throw new ApiException(503,"SERVER_ERROR","文件暂时不可用");
         return new Download(path,metadata.get("mimeType").asText(),metadata.get("sizeBytes").asLong());
     }

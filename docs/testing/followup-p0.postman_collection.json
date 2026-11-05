@@ -2,7 +2,7 @@
   "info": {
     "name": "皮肤病随访后端 P0 调试",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "对应 docs/api-testing.md，覆盖35个P0合同操作及签名对象读写。手动按文件夹顺序发送，图片上传需选择本地文件。按需测试和清理文件夹不要直接整组运行。集合不含真实密码。"
+    "description": "对应 docs/api-testing.md，覆盖36个P0合同操作及签名对象读写，包含医生选择和all/mine筛选。手动按文件夹顺序发送，图片上传需选择本地文件。按需测试和清理文件夹不要直接整组运行。集合不含真实密码。"
   },
   "auth": {
     "type": "bearer",
@@ -247,6 +247,72 @@
             "header": [],
             "url": "{{baseUrl}}/system/capabilities",
             "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "医生选择与权限范围",
+      "description": "",
+      "item": [
+        {
+          "name": "01 查询可选主治医师",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/doctors?limit=50",
+            "description": "仅返回有效医生ID和显示名；创建患者时可选填attendingDoctorId。"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 医生查看全部患者",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/patients?scope=all&limit=50",
+            "description": "医生返回全库；普通患者仍仅返回本账号数据。"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 医生查看主治名下患者",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/patients?scope=mine&limit=50",
+            "description": "医生按主治关联筛选；普通患者始终限定本账号。"
           },
           "event": [
             {

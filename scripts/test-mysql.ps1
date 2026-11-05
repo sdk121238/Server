@@ -11,5 +11,5 @@ try {
     if($LASTEXITCODE -ne 0) { throw 'Could not prepare the disposable MySQL test schema.' }
 } finally { $env:MYSQL_PWD=$savedPassword }
 $env:RUN_MYSQL_TESTS='true'
-& "$PSScriptRoot\mvn.ps1" -MavenArgs @('test','-Dtest=MySqlIntegrationTest','-q')
+& "$PSScriptRoot\mvn.ps1" -MavenArgs @('-o','test','-Dtest=MySqlIntegrationTest,MySqlPatientDoctorTest','-q')
 exit $LASTEXITCODE

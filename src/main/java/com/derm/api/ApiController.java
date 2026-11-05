@@ -69,7 +69,8 @@ public class ApiController {
             case "GET /patients/{patientId}" -> resources.get(Kind.PATIENT,actor,p.get("patientId"));
             case "PATCH /patients/{patientId}" -> resources.patch(Kind.PATIENT,actor,p.get("patientId"),body,match);
             case "DELETE /patients/{patientId}" -> resources.delete(Kind.PATIENT,actor,p.get("patientId"),match);
-            case "GET /patients" -> resources.list(Kind.PATIENT,actor,null,r.getParameter("q"),r.getParameter("pageToken"),limit(r,50),null,null);
+            case "GET /patients" -> resources.list(Kind.PATIENT,actor,null,r.getParameter("q"),r.getParameter("pageToken"),limit(r,50),null,null,Objects.toString(r.getParameter("scope"),"all"));
+            case "GET /doctors" -> resources.doctors(actor,r.getParameter("q"),r.getParameter("pageToken"),limit(r,50));
             case "POST /lesions" -> resources.create(Kind.LESION,actor,body);
             case "GET /lesions/{lesionId}" -> resources.get(Kind.LESION,actor,p.get("lesionId"));
             case "PATCH /lesions/{lesionId}" -> resources.patch(Kind.LESION,actor,p.get("lesionId"),body,match);
@@ -85,7 +86,7 @@ public class ApiController {
             case "POST /file-uploads/{uploadId}/sign-single" -> new ApiResult(201,uploads.sign(actor.userId(),p.get("uploadId")),null);
             case "POST /file-uploads/{uploadId}/complete" -> uploads.complete(actor,p.get("uploadId"),body);
             case "DELETE /file-uploads/{uploadId}" -> uploads.abort(actor,p.get("uploadId"));
-            case "GET /files/{fileId}" -> ApiResult.ok(uploads.file(actor.userId(),p.get("fileId")));
+            case "GET /files/{fileId}" -> ApiResult.ok(uploads.readFile(actor.userId(),p.get("fileId")));
             case "POST /files/{fileId}/download-url" -> uploads.download(actor,p.get("fileId"));
             case "POST /offline-imports" -> sync.createImport(actor,body);
             case "POST /sync/snapshots" -> sync.snapshot(actor);
@@ -97,7 +98,7 @@ public class ApiController {
         };
     }
     private ApiResult capabilities() {
-        var out=json.object().put("apiVersion","1.0.0").put("maxUploadBytes",ImageFiles.MAX_BYTES).put("multipartEnabled",false).put("maxSyncBatch",0).put("maxPageSize",100).put("cloudDraftsEnabled",false).put("serverAlgorithmsEnabled",false);
+        var out=json.object().put("apiVersion","1.1.0").put("maxUploadBytes",ImageFiles.MAX_BYTES).put("multipartEnabled",false).put("maxSyncBatch",0).put("maxPageSize",100).put("cloudDraftsEnabled",false).put("serverAlgorithmsEnabled",false);
         out.set("acceptedMimeTypes",json.array().add("image/jpeg").add("image/png"));return ApiResult.ok(out);
     }
     private int limit(HttpServletRequest r,int fallback) { String value=r.getParameter("limit");if(value==null) return fallback;try { int parsed=Integer.parseInt(value);if(parsed<1||parsed>100) throw new NumberFormatException();return parsed; } catch(NumberFormatException e) { throw ApiException.invalid("limit范围为1至100"); } }

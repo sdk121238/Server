@@ -10,7 +10,7 @@
 </head>
 <body>
   <header class="app-header">
-    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">{ }</span><span>接口调试台</span><span class="workspace-label">个人工作区 · P0</span></div>
+    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">{ }</span><span>接口调试台</span><span class="workspace-label">患者与医生 · v1.1</span></div>
     <div class="header-actions">
       <a class="document-link" href="../v3/api-docs" target="_blank" rel="noopener">OpenAPI JSON <span aria-hidden="true">↗</span></a>
       <details class="help-menu">
@@ -18,6 +18,7 @@
         <div class="help-content">
           <strong>开始调试</strong>
           <p>先选择“账号密码登录”，填写 API 账号密码并执行。将返回的 accessToken 粘贴到 Authorize，只填令牌本身。</p>
+          <p>患者仅访问自己账号的数据；医生可查看全部患者，scope=mine查看主治名下患者。选择主治医师前先查询“医生”列表。年龄自动计算，无需填写。</p>
           <p>修改或删除前先查询详情，把响应头 ETag（含双引号）填入 If-Match。新业务更换 Idempotency-Key，网络重试保留原键和正文。</p>
           <p>图片流程：患者 → 病灶 → 上传会话 → 图片 PUT → complete → 采集。</p>
           <a href="sample-20x20.png" download="sample-20x20.png">下载 20×20 测试 PNG</a><span class="help-caption">83 字节，与上传示例参数一致</span>

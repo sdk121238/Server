@@ -44,8 +44,8 @@ public class DocumentationController {
         });
         paths.remove(emptyPaths);
         ObjectNode info = (ObjectNode) document.get("info");
-        info.put("title", "皮肤病随访后端 · P0 接口调试");
-        info.put("description", "当前已实现的35个个人工作区接口，另附图片二进制传输操作。先执行认证 → 登录，再将 accessToken 填入右上角 Authorize（只填令牌，不填 Bearer）。修改和删除前先查询对应资源，将响应头 ETag 原样填入 If-Match；每项新业务请求使用独立 Idempotency-Key。页面示例UUID仅供本次调试，实际引用时以创建响应为准。医院协作、审核、短信、分片与服务器算法尚未启用。所有 Execute 都会访问真实后端，请使用虚构测试数据。");
+        info.put("title", "皮肤病随访后端 · 患者与医生接口调试");
+        info.put("description", "当前36个业务接口，另附2个图片传输操作。患者仅访问本账号数据；HOSPITAL_STAFF医生可查看全库，GET /patients?scope=mine筛选主治名下患者。医生不可修改其他账号数据。主治医师可空，先查询GET /doctors选择。年龄由出生信息计算，不能提交age。个人离线同步仅本人拥有数据。先登录，再将accessToken填入Authorize。修改带ETag与If-Match，新业务使用新Idempotency-Key。机构成员、审核、短信、分片与服务器算法尚未启用。Execute访问当前数据库，请使用虚构数据。");
         document.set("servers", json.array().add(json.object().put("url", request.getContextPath() + "/api/v1").put("description", "当前后端")));
         addExamples(document);
         addObjectOperations(paths, request.getContextPath());
@@ -69,7 +69,7 @@ public class DocumentationController {
         }));
         ObjectNode schemas = (ObjectNode) document.path("components").path("schemas");
         example(schemas, "Login", json.object().put("account", "local-owner").put("password", "请填写本机API登录密码"));
-        example(schemas, "PatientCreate", json.object().put("id", patient).put("name", "Swagger调试患者").put("birthDate", "1990-01-01"));
+        example(schemas, "PatientCreate", json.object().put("id", patient).put("name", "Swagger调试患者").put("birthYearMonth", "1990-01").put("phoneNumber","+8613800000000").put("gender","UNKNOWN").putNull("attendingDoctorId"));
         example(schemas, "LesionCreate", json.object().put("id", lesion).put("patientId", patient).put("bodySite", "左手背").put("note", "Swagger调试用虚构数据"));
         example(schemas, "UploadCreate", json.object().put("patientId", patient).put("sizeBytes", 83)
             .put("sha256", "0aedc9bece813993a4241852d4826e275f95d7cd3877a25e052922f2b84e3c0c")

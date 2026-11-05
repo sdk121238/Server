@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "白癜风随访 V1 后端接口建议合同",
-    "version": "1.0.0",
-    "description": "2026-11-03；对应App V1.6.0。设计合同，当前没有已部署后端。P0闭环/P1协作/P2算法。与README.md业务不变量共同使用。"
+    "version": "1.1.0",
+    "description": "2026-11-03；对应App V1.6.0。设计合同，当前没有已部署后端。P0闭环/P1协作/P2算法。与README.md业务不变量共同使用。\n1.1.0：启用PATIENT/HOSPITAL_STAFF角色，医生全库只读，患者资料扩展与主治关联；个人同步仍只包含本人拥有的数据。"
   },
   "servers": [
     {
@@ -50,6 +50,10 @@
     },
     {
       "name": "运维"
+    },
+    {
+      "name": "医生",
+      "description": "主治医师选择"
     }
   ],
   "paths": {
@@ -1372,7 +1376,7 @@
           "患者"
         ],
         "summary": "授权患者分页列表",
-        "description": "本人关联或病例授权；可按姓名过滤。详见 README.md 的校验、同步和权限约束。",
+        "description": "患者仅本账号数据；医院医生可查询全库，scope=mine筛选名下患者。搜索与筛选绑定分页令牌。",
         "x-priority": "P0",
         "security": [
           {
@@ -1405,6 +1409,19 @@
               "maxLength": 128
             },
             "description": "在已授权患者范围内搜索姓名"
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "mine"
+              ],
+              "default": "all"
+            },
+            "description": "医生all查看全库，mine仅看主治关联名下；患者始终只能看自己账号数据"
           }
         ],
         "responses": {
@@ -5371,6 +5388,72 @@
           }
         }
       }
+    },
+    "/doctors": {
+      "get": {
+        "tags": [
+          "医生"
+        ],
+        "summary": "查询可选主治医师",
+        "description": "仅返回已登记且有效的医院医生id与显示名，需登录。",
+        "operationId": "get_doctors",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "按医生显示名搜索"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "有效医生分页列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5904,6 +5987,43 @@
             "type": "string",
             "format": "date",
             "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 32,
+            "description": "联系电话，可选+号及7至15位数字，空白清空"
+          },
+          "gender": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "MALE",
+              "FEMALE",
+              "OTHER",
+              "UNKNOWN"
+            ]
+          },
+          "birthYearMonth": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[0-9]{4}-[0-9]{2}$",
+            "description": "出生年月YYYY-MM，不得为未来年月；与birthDate同时提供时必须同月"
+          },
+          "attendingDoctorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "已登记有效医生ID，可空；先查询GET /doctors"
+          },
+          "age": {
+            "type": "integer",
+            "nullable": true,
+            "readOnly": true,
+            "description": "服务器按Asia/Shanghai当日计算；有完整生日按周岁，仅年月按整月/12，缺少出生信息为null"
+          },
+          "attendingDoctor": {
+            "$ref": "#/components/schemas/NullableDoctorSummary"
           }
         },
         "additionalProperties": false,
@@ -5941,6 +6061,34 @@
           "importId": {
             "type": "string",
             "format": "uuid"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 32,
+            "description": "联系电话，可选+号及7至15位数字，空白清空"
+          },
+          "gender": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "MALE",
+              "FEMALE",
+              "OTHER",
+              "UNKNOWN"
+            ]
+          },
+          "birthYearMonth": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[0-9]{4}-[0-9]{2}$",
+            "description": "出生年月YYYY-MM，不得为未来年月；与birthDate同时提供时必须同月"
+          },
+          "attendingDoctorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "已登记有效医生ID，可空；先查询GET /doctors"
           }
         },
         "additionalProperties": false,
@@ -5961,6 +6109,34 @@
             "type": "string",
             "format": "date",
             "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 32,
+            "description": "联系电话，可选+号及7至15位数字，空白清空"
+          },
+          "gender": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "MALE",
+              "FEMALE",
+              "OTHER",
+              "UNKNOWN"
+            ]
+          },
+          "birthYearMonth": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[0-9]{4}-[0-9]{2}$",
+            "description": "出生年月YYYY-MM，不得为未来年月；与birthDate同时提供时必须同月"
+          },
+          "attendingDoctorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "已登记有效医生ID，可空；先查询GET /doctors"
           }
         },
         "additionalProperties": false
@@ -9250,6 +9426,70 @@
         "required": [
           "status",
           "serverTime"
+        ]
+      },
+      "DoctorSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unavailable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "displayName"
+        ]
+      },
+      "NullableDoctorSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unavailable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "displayName"
+        ],
+        "nullable": true,
+        "readOnly": true
+      },
+      "DoctorPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoctorSummary"
+            }
+          },
+          "nextPageToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextPageToken"
         ]
       }
     }

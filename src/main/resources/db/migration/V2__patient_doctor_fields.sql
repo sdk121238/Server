@@ -1,0 +1,11 @@
+ALTER TABLE users ADD COLUMN role VARCHAR(32) NOT NULL DEFAULT 'PATIENT';
+ALTER TABLE users ADD CONSTRAINT chk_users_role CHECK (role IN ('PATIENT','HOSPITAL_STAFF'));
+CREATE INDEX idx_users_doctors ON users(role,status,id);
+ALTER TABLE patients ADD COLUMN patient_name VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE patients ADD COLUMN phone_number VARCHAR(32) NULL;
+ALTER TABLE patients ADD COLUMN gender VARCHAR(16) NULL;
+ALTER TABLE patients ADD COLUMN birth_year_month CHAR(7) NULL;
+ALTER TABLE patients ADD COLUMN attending_doctor_id VARCHAR(36) NULL;
+ALTER TABLE patients ADD CONSTRAINT fk_patients_doctor FOREIGN KEY(attending_doctor_id) REFERENCES users(id);
+ALTER TABLE patients ADD CONSTRAINT chk_patients_gender CHECK (gender IS NULL OR gender IN ('MALE','FEMALE','OTHER','UNKNOWN'));
+CREATE INDEX idx_patients_doctor ON patients(attending_doctor_id,deleted_at,id);

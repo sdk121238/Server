@@ -1,4 +1,5 @@
 # 后端完整接口与数据设计清单
+当前v1.1.0扩展：启用PATIENT/HOSPITAL_STAFF医生全库只读；新增GET /doctors、患者phoneNumber/gender/birthYearMonth/attendingDoctorId、只读age与attendingDoctor摘要。详细权限和兼容规则见 [专项说明](../patient-doctor-guide.md)。下文机构成员与授权仍为扩展规划，不能与已启用医生只读混淆。
 
 版本：建议合同 v1.0，2026-11-03；对应客户端 V1.6.0。本文是**供后续后端开发的设计合同**，不是服务器已经上线或客户端已经完成联网的声明。接口路径及新增字段可在实施前统一冻结。
 

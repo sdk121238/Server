@@ -19,6 +19,7 @@ spring:
     deserialization:
       fail-on-trailing-tokens: true
 app:
+  provision-password: ${PROVISION_PASSWORD:}
   public-url: ${APP_PUBLIC_URL:http://127.0.0.1:8080}
   storage-root: ${STORAGE_ROOT:./data/objects}
   signing-key: ${APP_SIGNING_KEY:}
