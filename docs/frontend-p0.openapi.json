@@ -1,0 +1,4395 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "前端交接用接口快照（个人工作区P0）",
+    "version": "1.0.0",
+    "description": "2026-11-05；以当前实现为准。35个业务路由，其中jobs仅404；另附2个图片传输操作。仅SINGLE/JPEG/PNG，未启用机构、短信、审核、云草稿及服务器算法。原规划合同独立保留。本文件不包含账号密码。",
+    "x-contract-sha256": "25dfa0c482414f14da90c2c24cad90e18fdca369c4620aa0992aa396ff8a06f1"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8080/api/v1",
+      "description": "仅后端本机；跨电脑联调须替换成双方确认的测试环境地址"
+    }
+  ],
+  "tags": [
+    {
+      "name": "认证"
+    },
+    {
+      "name": "账号"
+    },
+    {
+      "name": "患者"
+    },
+    {
+      "name": "病灶"
+    },
+    {
+      "name": "采集"
+    },
+    {
+      "name": "文件"
+    },
+    {
+      "name": "同步"
+    },
+    {
+      "name": "任务"
+    },
+    {
+      "name": "运维"
+    },
+    {
+      "name": "图片传输"
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "operationId": "post_auth_login",
+        "tags": [
+          "认证"
+        ],
+        "summary": "账号密码登录",
+        "description": "公开，限流；角色只作提示。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tokens"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "post_auth_refresh",
+        "tags": [
+          "认证"
+        ],
+        "summary": "轮换刷新令牌",
+        "description": "有效刷新令牌，检测重放。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Refresh"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tokens"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "post_auth_logout",
+        "tags": [
+          "认证"
+        ],
+        "summary": "退出并撤销会话",
+        "description": "Bearer + 刷新令牌。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Refresh"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "get_auth_me",
+        "tags": [
+          "认证"
+        ],
+        "summary": "当前公开账号信息",
+        "description": "本人。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "带引号的revision"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "patch": {
+        "operationId": "patch_users_me",
+        "tags": [
+          "账号"
+        ],
+        "summary": "修改显示名",
+        "description": "本人，不允许自改角色/机构。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "资源当前revision的ETag；审核decision使用Review的revision，同时校验captureContentRevision。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfilePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "带引号的revision"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/me/password": {
+      "post": {
+        "operationId": "post_users_me_password",
+        "tags": [
+          "账号"
+        ],
+        "summary": "修改密码",
+        "description": "本人，验证当前密码并撤销其他会话。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/patients": {
+      "get": {
+        "operationId": "get_patients",
+        "tags": [
+          "患者"
+        ],
+        "summary": "授权患者分页列表",
+        "description": "本人关联或病例授权；可按姓名过滤。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pageToken",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "在已授权患者范围内搜索姓名"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Patient"
+                      }
+                    },
+                    "nextPageToken": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextPageToken"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_patients",
+        "tags": [
+          "患者"
+        ],
+        "summary": "新建患者或确认归属后导入",
+        "description": "patient:create；导入须检查 importId。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "带引号的revision"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/patients/{patientId}": {
+      "get": {
+        "operationId": "get_patients_patientId",
+        "tags": [
+          "患者"
+        ],
+        "summary": "患者详情",
+        "description": "patient:read + 资源范围。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patientId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "带引号的revision"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch_patients_patientId",
+        "tags": [
+          "患者"
+        ],
+        "summary": "修改患者基本信息",
+        "description": "patient:write。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patientId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "资源当前revision的ETag；审核decision使用Review的revision，同时校验captureContentRevision。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "带引号的revision"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_patients_patientId",
+        "tags": [
+          "患者"
+        ],
+        "summary": "受控删除患者及子资源",
+        "description": "patient:delete；子资源墓碑同事务，较大删除可202。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patientId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "资源当前revision的ETag；审核decision使用Review的revision，同时校验captureContentRevision。"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/patients/{patientId}/lesions": {
+      "get": {
+        "operationId": "get_patients_patientId_lesions",
+        "tags": [
+          "病灶"
+        ],
+        "summary": "患者病灶列表",
+        "description": "lesion:read + 患者授权。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "patientId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Lesion"
+                      }
+                    },
+                    "nextPageToken": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextPageToken"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lesions": {
+      "post": {
+        "operationId": "post_lesions",
+        "tags": [
+          "病灶"
+        ],
+        "summary": "新建病灶",
+        "description": "lesion:create + 患者授权。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LesionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "带引号的revision"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lesion"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lesions/{lesionId}": {
+      "get": {
+        "operationId": "get_lesions_lesionId",
+        "tags": [
+          "病灶"
+        ],
+        "summary": "病灶详情",
+        "description": "lesion:read。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lesionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "带引号的revision"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lesion"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch_lesions_lesionId",
+        "tags": [
+          "病灶"
+        ],
+        "summary": "修改部位和备注",
+        "description": "lesion:write。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lesionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "资源当前revision的ETag；审核decision使用Review的revision，同时校验captureContentRevision。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LesionPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "带引号的revision"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lesion"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_lesions_lesionId",
+        "tags": [
+          "病灶"
+        ],
+        "summary": "删除病灶及采集墓碑",
+        "description": "lesion:delete；父子变更原子。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lesionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "资源当前revision的ETag；审核decision使用Review的revision，同时校验captureContentRevision。"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lesions/{lesionId}/captures": {
+      "get": {
+        "operationId": "get_lesions_lesionId_captures",
+        "tags": [
+          "采集"
+        ],
+        "summary": "病灶历史记录分页",
+        "description": "capture:read；按 capturedAt,id 稳定排序。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lesionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "fromAt",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            },
+            "description": "[fromAt,toAt)，服务端验证区间"
+          },
+          {
+            "name": "toAt",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            },
+            "description": "[fromAt,toAt)，服务端验证区间"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Capture"
+                      }
+                    },
+                    "nextPageToken": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextPageToken"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/captures": {
+      "post": {
+        "operationId": "post_captures",
+        "tags": [
+          "采集"
+        ],
+        "summary": "提交图片引用与标定分析快照",
+        "description": "capture:create；文件READY且归属匹配。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptureCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "带引号的revision"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capture"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/captures/{captureId}": {
+      "get": {
+        "operationId": "get_captures_captureId",
+        "tags": [
+          "采集"
+        ],
+        "summary": "完整采集详情",
+        "description": "capture:read。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "captureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "带引号的revision"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capture"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch_captures_captureId",
+        "tags": [
+          "采集"
+        ],
+        "summary": "更新标注或算法结果",
+        "description": "capture:write；新revision，原审核失效。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "captureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "资源当前revision的ETag；审核decision使用Review的revision，同时校验captureContentRevision。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapturePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "带引号的revision"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capture"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_captures_captureId",
+        "tags": [
+          "采集"
+        ],
+        "summary": "删除采集并写墓碑",
+        "description": "capture:delete；文件延迟清理。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "captureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"[1-9][0-9]*\"$"
+            },
+            "description": "资源当前revision的ETag；审核decision使用Review的revision，同时校验captureContentRevision。"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/file-uploads": {
+      "post": {
+        "operationId": "post_file_uploads",
+        "tags": [
+          "文件"
+        ],
+        "summary": "初始化JPEG/PNG单文件上传（仅SINGLE）",
+        "description": "file:create + 患者授权。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Upload"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/file-uploads/{uploadId}": {
+      "get": {
+        "operationId": "get_file_uploads_uploadId",
+        "tags": [
+          "文件"
+        ],
+        "summary": "查询本人上传会话及可用单文件签名",
+        "description": "上传发起者/同范围授权；过期410。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Upload"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_file_uploads_uploadId",
+        "tags": [
+          "文件"
+        ],
+        "summary": "中止未完成上传",
+        "description": "上传发起者；已提交文件不可中止。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/file-uploads/{uploadId}/sign-single": {
+      "post": {
+        "operationId": "post_file_uploads_uploadId_sign_single",
+        "tags": [
+          "文件"
+        ],
+        "summary": "续签同一单文件上传URL",
+        "description": "原上传发起者，原会话未过期且未进入校验。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadUrl"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/file-uploads/{uploadId}/complete": {
+      "post": {
+        "operationId": "post_file_uploads_uploadId_complete",
+        "tags": [
+          "文件"
+        ],
+        "summary": "完成上传并校验字节",
+        "description": "上传发起者；异步校验时202 Upload。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uploadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadComplete"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/File"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/{fileId}": {
+      "get": {
+        "operationId": "get_files_fileId",
+        "tags": [
+          "文件"
+        ],
+        "summary": "文件元信息，不返回本机路径",
+        "description": "file:read + 所属病例授权。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/File"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/{fileId}/download-url": {
+      "post": {
+        "operationId": "post_files_fileId_download_url",
+        "tags": [
+          "文件"
+        ],
+        "summary": "申请短期授权下载URL",
+        "description": "file:read；每次重新校验病例权限。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadUrl"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/offline-imports": {
+      "post": {
+        "operationId": "post_offline_imports",
+        "tags": [
+          "同步"
+        ],
+        "summary": "确认旧本机数据导入范围",
+        "description": "已验证身份，用户已明确确认归属。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPlan"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/snapshots": {
+      "post": {
+        "operationId": "post_sync_snapshots",
+        "tags": [
+          "同步"
+        ],
+        "summary": "建立一致性首次同步快照",
+        "description": "当前账号和活动范围。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/snapshots/{snapshotId}": {
+      "get": {
+        "operationId": "get_sync_snapshots_snapshotId",
+        "tags": [
+          "同步"
+        ],
+        "summary": "分页读取快照",
+        "description": "快照所有者与原授权范围。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "snapshotId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sync/changes": {
+      "get": {
+        "operationId": "get_sync_changes",
+        "tags": [
+          "同步"
+        ],
+        "summary": "按提交水位增量拉取",
+        "description": "cursor绑定身份/机构/授权版本。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Changes"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{jobId}": {
+      "get": {
+        "operationId": "get_jobs_jobId",
+        "tags": [
+          "任务"
+        ],
+        "summary": "任务查询预留：当前无任务，返回404",
+        "description": "任务所有者/授权管理者；含大批量删除任务。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "当前P0不生成异步任务，合法未知UUID返回NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/system/capabilities": {
+      "get": {
+        "operationId": "get_system_capabilities",
+        "tags": [
+          "运维"
+        ],
+        "summary": "协商上传和同步能力",
+        "description": "已登录客户端。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capabilities"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/system/health": {
+      "get": {
+        "operationId": "get_system_health",
+        "tags": [
+          "运维"
+        ],
+        "summary": "仅暴露最小健康状态",
+        "description": "公开或网关限制，不含配置及依赖密码。详见 README.md 的校验、同步和权限约束。",
+        "x-priority": "P0",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "成功；授权和字段校验见总说明",
+            "headers": {
+              "X-Request-Id": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误，HTTP状态码见总说明",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/objects/{objectId}": {
+      "put": {
+        "operationId": "put_signed_image",
+        "tags": [
+          "图片传输"
+        ],
+        "summary": "签名图片原始字节上传",
+        "description": "按上传/下载响应中的完整URL取objectId与ticket。上传objectId为uploadId，下载为fileId。PUT不是form-data；成功后须complete。",
+        "security": [],
+        "x-documentation-only": true,
+        "servers": [
+          {
+            "url": "http://127.0.0.1:8080",
+            "description": "实际请求使用后端返回的完整签名URL"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "objectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ticket",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "成功"
+          },
+          "default": {
+            "description": "标准错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "get_signed_image",
+        "tags": [
+          "图片传输"
+        ],
+        "summary": "签名图片原始字节下载",
+        "description": "按上传/下载响应中的完整URL取objectId与ticket。上传objectId为uploadId，下载为fileId。PUT不是form-data；成功后须complete。",
+        "security": [],
+        "x-documentation-only": true,
+        "servers": [
+          {
+            "url": "http://127.0.0.1:8080",
+            "description": "实际请求使用后端返回的完整签名URL"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "objectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ticket",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "标准错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "opaque"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "requestId"
+        ]
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "account": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "PATIENT"
+            ]
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "account",
+          "displayName",
+          "role",
+          "organizationId",
+          "permissions"
+        ]
+      },
+      "Login": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 1
+          },
+          "requestedRole": {
+            "type": "string",
+            "enum": [
+              "PATIENT",
+              "HOSPITAL_STAFF"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "account",
+          "password"
+        ],
+        "example": {
+          "account": "local-owner",
+          "password": "<由后端负责人提供的API测试密码>"
+        }
+      },
+      "Tokens": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/Profile"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "accessToken",
+          "refreshToken",
+          "expiresAt"
+        ]
+      },
+      "Refresh": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "ProfilePatch": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "additionalProperties": false
+      },
+      "PasswordChange": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "format": "password"
+          },
+          "newPassword": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "Patient": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "deletedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "birthDate",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PatientCreate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "clientCreatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "importId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name"
+        ],
+        "example": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "name": "前端联调患者",
+          "birthDate": null
+        }
+      },
+      "PatientPatch": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Lesion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "deletedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "patientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bodySite": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "revision",
+          "patientId",
+          "bodySite",
+          "note",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "LesionCreate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "patientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bodySite": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "clientCreatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "importId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "patientId",
+          "bodySite"
+        ],
+        "example": {
+          "id": "22222222-2222-4222-8222-222222222222",
+          "patientId": "11111111-1111-4111-8111-111111111111",
+          "bodySite": "左手背",
+          "note": "虚构数据"
+        }
+      },
+      "LesionPatch": {
+        "type": "object",
+        "properties": {
+          "bodySite": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "additionalProperties": false
+      },
+      "Point": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "format": "double",
+            "minimum": 0
+          },
+          "y": {
+            "type": "number",
+            "format": "double",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "x",
+          "y"
+        ]
+      },
+      "Lab": {
+        "type": "object",
+        "properties": {
+          "l": {
+            "type": "number",
+            "format": "double"
+          },
+          "a": {
+            "type": "number",
+            "format": "double"
+          },
+          "b": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "l",
+          "a",
+          "b"
+        ]
+      },
+      "Rgb": {
+        "type": "object",
+        "properties": {
+          "r": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "g": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "b": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "r",
+          "g",
+          "b"
+        ]
+      },
+      "CaptureMetadata": {
+        "type": "object",
+        "properties": {
+          "appVersion": {
+            "type": "string"
+          },
+          "algorithmVersions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "collectedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "importedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "originalCapturedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "liveQc": {
+            "type": "object",
+            "properties": {
+              "liveGateExecuted": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "passed": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "issues": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "sharpness": {
+                "type": "number",
+                "format": "double",
+                "nullable": true
+              },
+              "meanExposure": {
+                "type": "number",
+                "format": "double",
+                "nullable": true,
+                "minimum": 0,
+                "maximum": 1
+              },
+              "clippedPixelRatio": {
+                "type": "number",
+                "format": "double",
+                "nullable": true,
+                "minimum": 0,
+                "maximum": 1
+              },
+              "markerDetected": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "targetSizeRatio": {
+                "type": "number",
+                "format": "double",
+                "nullable": true
+              },
+              "perspectiveRatio": {
+                "type": "number",
+                "format": "double",
+                "nullable": true
+              }
+            },
+            "additionalProperties": false,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CaptureCreate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lesionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "imageFileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "capturedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "deviceModel": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "CAMERA",
+              "GALLERY",
+              "UNKNOWN"
+            ]
+          },
+          "assetKind": {
+            "type": "string",
+            "enum": [
+              "CAPTURE_IMAGE",
+              "ANALYSIS_COPY",
+              "UNKNOWN"
+            ]
+          },
+          "referenceOnly": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "qualityNote": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "calibration": {
+            "type": "object",
+            "properties": {
+              "markerId": {
+                "type": "string"
+              },
+              "markerWidthMm": {
+                "type": "number",
+                "format": "double",
+                "exclusiveMinimum": true,
+                "minimum": 0
+              },
+              "pixelsPerMm": {
+                "type": "number",
+                "format": "double",
+                "exclusiveMinimum": true,
+                "minimum": 0
+              },
+              "qualityScore": {
+                "type": "number",
+                "format": "double",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "colorReference": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Lab"
+                }
+              },
+              "swatchRgb": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Rgb"
+                }
+              },
+              "colorCorrection": {
+                "type": "object",
+                "properties": {
+                  "redScale": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "redOffset": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "greenScale": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "greenOffset": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "blueScale": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "blueOffset": {
+                    "type": "number",
+                    "format": "double"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "redScale",
+                  "redOffset",
+                  "greenScale",
+                  "greenOffset",
+                  "blueScale",
+                  "blueOffset"
+                ],
+                "nullable": true
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "AUTO_MARKER",
+                  "MANUAL",
+                  "UNKNOWN"
+                ]
+              },
+              "markerCorners": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Point"
+                }
+              },
+              "scalePoints": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Point"
+                }
+              },
+              "calibrationVersion": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "markerId",
+              "markerWidthMm",
+              "pixelsPerMm",
+              "qualityScore"
+            ],
+            "nullable": true
+          },
+          "analysis": {
+            "type": "object",
+            "properties": {
+              "areaMm2": {
+                "type": "number",
+                "format": "double",
+                "nullable": true,
+                "minimum": 0
+              },
+              "lesionColor": {
+                "type": "object",
+                "properties": {
+                  "l": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "a": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "b": {
+                    "type": "number",
+                    "format": "double"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "l",
+                  "a",
+                  "b"
+                ],
+                "nullable": true
+              },
+              "colorDifference": {
+                "type": "number",
+                "format": "double",
+                "nullable": true,
+                "minimum": 0
+              },
+              "algorithmVersion": {
+                "type": "string"
+              },
+              "isValid": {
+                "type": "boolean"
+              },
+              "failureReason": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "isValid",
+              "algorithmVersion"
+            ],
+            "nullable": true
+          },
+          "annotation": {
+            "type": "object",
+            "properties": {
+              "points": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Point"
+                },
+                "maxItems": 2000
+              },
+              "imageWidth": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "imageHeight": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "segmentationVersion": {
+                "type": "string",
+                "nullable": true
+              },
+              "edited": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "points",
+              "imageWidth",
+              "imageHeight",
+              "edited"
+            ],
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/CaptureMetadata"
+          },
+          "importId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "lesionId",
+          "imageFileId",
+          "capturedAt",
+          "deviceModel",
+          "source",
+          "assetKind",
+          "referenceOnly"
+        ]
+      },
+      "Capture": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "updatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "deletedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          },
+          "lesionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "imageFileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "capturedAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "deviceModel": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "CAMERA",
+              "GALLERY",
+              "UNKNOWN"
+            ]
+          },
+          "assetKind": {
+            "type": "string",
+            "enum": [
+              "CAPTURE_IMAGE",
+              "ANALYSIS_COPY",
+              "UNKNOWN"
+            ]
+          },
+          "referenceOnly": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "qualityNote": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "calibration": {
+            "type": "object",
+            "properties": {
+              "markerId": {
+                "type": "string"
+              },
+              "markerWidthMm": {
+                "type": "number",
+                "format": "double",
+                "exclusiveMinimum": true,
+                "minimum": 0
+              },
+              "pixelsPerMm": {
+                "type": "number",
+                "format": "double",
+                "exclusiveMinimum": true,
+                "minimum": 0
+              },
+              "qualityScore": {
+                "type": "number",
+                "format": "double",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "colorReference": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Lab"
+                }
+              },
+              "swatchRgb": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Rgb"
+                }
+              },
+              "colorCorrection": {
+                "type": "object",
+                "properties": {
+                  "redScale": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "redOffset": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "greenScale": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "greenOffset": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "blueScale": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "blueOffset": {
+                    "type": "number",
+                    "format": "double"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "redScale",
+                  "redOffset",
+                  "greenScale",
+                  "greenOffset",
+                  "blueScale",
+                  "blueOffset"
+                ],
+                "nullable": true
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "AUTO_MARKER",
+                  "MANUAL",
+                  "UNKNOWN"
+                ]
+              },
+              "markerCorners": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Point"
+                }
+              },
+              "scalePoints": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Point"
+                }
+              },
+              "calibrationVersion": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "markerId",
+              "markerWidthMm",
+              "pixelsPerMm",
+              "qualityScore"
+            ],
+            "nullable": true
+          },
+          "analysis": {
+            "type": "object",
+            "properties": {
+              "areaMm2": {
+                "type": "number",
+                "format": "double",
+                "nullable": true,
+                "minimum": 0
+              },
+              "lesionColor": {
+                "type": "object",
+                "properties": {
+                  "l": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "a": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "b": {
+                    "type": "number",
+                    "format": "double"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "l",
+                  "a",
+                  "b"
+                ],
+                "nullable": true
+              },
+              "colorDifference": {
+                "type": "number",
+                "format": "double",
+                "nullable": true,
+                "minimum": 0
+              },
+              "algorithmVersion": {
+                "type": "string"
+              },
+              "isValid": {
+                "type": "boolean"
+              },
+              "failureReason": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "isValid",
+              "algorithmVersion"
+            ],
+            "nullable": true
+          },
+          "annotation": {
+            "type": "object",
+            "properties": {
+              "points": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Point"
+                },
+                "maxItems": 2000
+              },
+              "imageWidth": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "imageHeight": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "segmentationVersion": {
+                "type": "string",
+                "nullable": true
+              },
+              "edited": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "points",
+              "imageWidth",
+              "imageHeight",
+              "edited"
+            ],
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/CaptureMetadata"
+          },
+          "reviewStatus": {
+            "type": "string",
+            "enum": [
+              "NOT_SUBMITTED"
+            ]
+          },
+          "contentRevision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "revision",
+          "lesionId",
+          "imageFileId",
+          "capturedAt",
+          "source",
+          "assetKind",
+          "referenceOnly",
+          "reviewStatus",
+          "createdAt",
+          "updatedAt",
+          "contentRevision"
+        ]
+      },
+      "CapturePatch": {
+        "type": "object",
+        "properties": {
+          "qualityNote": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "calibration": {
+            "type": "object",
+            "properties": {
+              "markerId": {
+                "type": "string"
+              },
+              "markerWidthMm": {
+                "type": "number",
+                "format": "double",
+                "exclusiveMinimum": true,
+                "minimum": 0
+              },
+              "pixelsPerMm": {
+                "type": "number",
+                "format": "double",
+                "exclusiveMinimum": true,
+                "minimum": 0
+              },
+              "qualityScore": {
+                "type": "number",
+                "format": "double",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "colorReference": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Lab"
+                }
+              },
+              "swatchRgb": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Rgb"
+                }
+              },
+              "colorCorrection": {
+                "type": "object",
+                "properties": {
+                  "redScale": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "redOffset": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "greenScale": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "greenOffset": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "blueScale": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "blueOffset": {
+                    "type": "number",
+                    "format": "double"
+                  }
+                },
+                "additionalProperties": false,
+                "nullable": true
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "AUTO_MARKER",
+                  "MANUAL",
+                  "UNKNOWN"
+                ]
+              },
+              "markerCorners": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Point"
+                }
+              },
+              "scalePoints": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Point"
+                }
+              },
+              "calibrationVersion": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "analysis": {
+            "type": "object",
+            "properties": {
+              "areaMm2": {
+                "type": "number",
+                "format": "double",
+                "nullable": true,
+                "minimum": 0
+              },
+              "lesionColor": {
+                "type": "object",
+                "properties": {
+                  "l": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "a": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "b": {
+                    "type": "number",
+                    "format": "double"
+                  }
+                },
+                "additionalProperties": false,
+                "nullable": true
+              },
+              "colorDifference": {
+                "type": "number",
+                "format": "double",
+                "nullable": true,
+                "minimum": 0
+              },
+              "algorithmVersion": {
+                "type": "string"
+              },
+              "isValid": {
+                "type": "boolean"
+              },
+              "failureReason": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "annotation": {
+            "type": "object",
+            "properties": {
+              "points": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Point"
+                },
+                "maxItems": 2000
+              },
+              "imageWidth": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "imageHeight": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "segmentationVersion": {
+                "type": "string",
+                "nullable": true
+              },
+              "edited": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "appVersion": {
+                "type": "string"
+              },
+              "algorithmVersions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "properties": {}
+              },
+              "collectedAt": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0,
+                "nullable": true
+              },
+              "importedAt": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0,
+                "nullable": true
+              },
+              "originalCapturedAt": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0,
+                "nullable": true
+              },
+              "liveQc": {
+                "type": "object",
+                "properties": {
+                  "liveGateExecuted": {
+                    "type": "boolean",
+                    "nullable": true
+                  },
+                  "passed": {
+                    "type": "boolean",
+                    "nullable": true
+                  },
+                  "issues": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sharpness": {
+                    "type": "number",
+                    "format": "double",
+                    "nullable": true
+                  },
+                  "meanExposure": {
+                    "type": "number",
+                    "format": "double",
+                    "nullable": true,
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "clippedPixelRatio": {
+                    "type": "number",
+                    "format": "double",
+                    "nullable": true,
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "markerDetected": {
+                    "type": "boolean",
+                    "nullable": true
+                  },
+                  "targetSizeRatio": {
+                    "type": "number",
+                    "format": "double",
+                    "nullable": true
+                  },
+                  "perspectiveRatio": {
+                    "type": "number",
+                    "format": "double",
+                    "nullable": true
+                  }
+                },
+                "additionalProperties": false,
+                "nullable": true
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "File": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "IMAGE"
+            ]
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "mimeType": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png"
+            ]
+          },
+          "width": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "nullable": true
+          },
+          "height": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "READY"
+            ]
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "sizeBytes",
+          "sha256",
+          "mimeType",
+          "width",
+          "height",
+          "state"
+        ]
+      },
+      "UploadCreate": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 104857600
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "mimeType": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png"
+            ]
+          },
+          "width": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "strategy": {
+            "type": "string",
+            "enum": [
+              "SINGLE"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "patientId",
+          "sizeBytes",
+          "sha256",
+          "mimeType",
+          "width",
+          "height",
+          "strategy"
+        ],
+        "example": {
+          "patientId": "11111111-1111-4111-8111-111111111111",
+          "sizeBytes": 83,
+          "sha256": "0aedc9bece813993a4241852d4826e275f95d7cd3877a25e052922f2b84e3c0c",
+          "mimeType": "image/png",
+          "width": 20,
+          "height": 20,
+          "strategy": "SINGLE"
+        }
+      },
+      "Part": {
+        "type": "object",
+        "properties": {
+          "partNumber": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "etag": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "partNumber",
+          "etag",
+          "sha256"
+        ]
+      },
+      "Upload": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "strategy": {
+            "type": "string",
+            "enum": [
+              "SINGLE"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "UPLOADING",
+              "READY",
+              "ABORTED"
+            ]
+          },
+          "uploadUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "requiredHeaders": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "partSizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "maxParts": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "acceptedParts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Part"
+            }
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "requestId": {
+                "type": "string"
+              },
+              "details": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message",
+              "requestId"
+            ],
+            "nullable": true
+          },
+          "urlExpiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "fileId",
+          "strategy",
+          "state",
+          "expiresAt",
+          "requiredHeaders"
+        ]
+      },
+      "UploadComplete": {
+        "type": "object",
+        "properties": {
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Part"
+            },
+            "maxItems": 0
+          }
+        },
+        "additionalProperties": false,
+        "example": {}
+      },
+      "UploadUrl": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "urlExpiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "requiredHeaders": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "urlExpiresAt",
+          "requiredHeaders"
+        ]
+      },
+      "DownloadUrl": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "mimeType": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "expiresAt",
+          "sha256",
+          "sizeBytes",
+          "mimeType"
+        ]
+      },
+      "ImportCreate": {
+        "type": "object",
+        "properties": {
+          "clientDatasetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "confirmedPatientIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "minItems": 1,
+            "maxItems": 100
+          },
+          "targetOrganizationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "当前个人工作区仅省略或null；非空机构ID返回403。"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "clientDatasetId",
+          "confirmedPatientIds"
+        ]
+      },
+      "ImportPlan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "allowedPatientIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "expiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "allowedPatientIds",
+          "expiresAt"
+        ]
+      },
+      "Snapshot": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "expiresAt"
+        ]
+      },
+      "Change": {
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string",
+            "enum": [
+              "PATIENT",
+              "LESION",
+              "CAPTURE"
+            ]
+          },
+          "entityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "UPSERT",
+              "DELETE"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "payload": {
+            "type": "object",
+            "nullable": true,
+            "description": "UPSERT 为对应 entityType 的完整资源；DELETE/ACCESS_REVOKED 为 null。",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "entityType",
+          "entityId",
+          "operation",
+          "revision",
+          "payload"
+        ]
+      },
+      "SnapshotPage": {
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Change"
+            }
+          },
+          "nextPageToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "snapshotId",
+          "items",
+          "nextPageToken",
+          "nextCursor"
+        ]
+      },
+      "Changes": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Change"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
+      "Capabilities": {
+        "type": "object",
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "maxUploadBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "acceptedMimeTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "multipartEnabled": {
+            "type": "boolean"
+          },
+          "maxSyncBatch": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxPageSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cloudDraftsEnabled": {
+            "type": "boolean"
+          },
+          "serverAlgorithmsEnabled": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "apiVersion",
+          "maxUploadBytes",
+          "acceptedMimeTypes",
+          "multipartEnabled",
+          "maxSyncBatch",
+          "maxPageSize",
+          "cloudDraftsEnabled",
+          "serverAlgorithmsEnabled"
+        ]
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "UP",
+              "DEGRADED"
+            ]
+          },
+          "serverTime": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "serverTime"
+        ]
+      }
+    }
+  }
+}

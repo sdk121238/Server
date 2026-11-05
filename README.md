@@ -6,6 +6,12 @@ Java 21 + Spring Boot 3.5.16 + MySQL 8.0，基于 [接口合同](docs/backend/RE
 
 希望用鼠标操作时，参见 [可视化运行步骤](docs/gui-running.md)。本机IDEA已准备 `Backend Local - JAR` 运行配置。
 
+启动后在浏览器打开 **http://127.0.0.1:8080/swagger-ui/index.html**，即可查看接口并点击 **Try it out → Execute** 调试。登录后将 `accessToken` 填入 **Authorize**。详见 [Swagger 页面操作说明](docs/swagger-ui.md)。
+
+完整业务流程、错误码和可选 Postman 文件见 [后端接口测试文档](docs/api-testing.md)。
+
+交给前端人员时，使用 [后端接口清单与前端联调对齐表](docs/frontend-api-alignment.md)，附当前P0 OpenAPI快照、字段字典及待填写的验收表。
+
 复用电脑已有的 IDEA JDK 21.0.7、IDEA Maven 3.9.9 和 MySQL 8.0.42。所有脚本只修改当前进程环境，未修改系统 JAVA_HOME、原 3306 MySQL 服务或原 root 密码。
 
 IDEA可直接打开 `pom.xml`；将项目SDK及Maven运行JRE指向已有的 `D:\搜狗高速下载\IntelliJ IDEA 2025.1.3\jbr`，不要沿用此目录原先选择的Java 27。命令行脚本已自动选择Java 21。

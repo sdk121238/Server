@@ -1,0 +1,1425 @@
+{
+  "info": {
+    "name": "皮肤病随访后端 P0 调试",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "对应 docs/api-testing.md，覆盖35个P0合同操作及签名对象读写。手动按文件夹顺序发送，图片上传需选择本地文件。按需测试和清理文件夹不要直接整组运行。集合不含真实密码。"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8080/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "account",
+      "value": "local-owner",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenExpiresAt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "patientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lesionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "captureId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "patientEtag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lesionEtag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "captureEtag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "profileEtag",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "uploadId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fileId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "uploadUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "uploadContentType",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "downloadUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "snapshotId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "snapshotPageToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "syncCursor",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clientDatasetId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "importPatientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "importId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jobId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 启动检查与登录",
+      "description": "",
+      "item": [
+        {
+          "name": "01 健康检查（无需登录）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/system/health",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 登录并保存双令牌",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"account\": \"{{account}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', data.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', data.refreshToken);",
+                  "pm.collectionVariables.set('tokenExpiresAt', String(data.expiresAt));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 查询当前账号并保存资料 ETag",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set('profileEtag', pm.response.headers.get('ETag')); ",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 查询已启用能力",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/system/capabilities",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 患者与病灶",
+      "description": "",
+      "item": [
+        {
+          "name": "01 创建测试患者",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idem_patientCreate}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/patients",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{patientId}}\",\n  \"name\": \"接口调试患者\",\n  \"birthDate\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idem_patientCreate')) pm.collectionVariables.set('idem_patientCreate', pm.variables.replaceIn('{{$guid}}'));",
+                  "if (!pm.collectionVariables.get('patientId')) pm.collectionVariables.set('patientId', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.collectionVariables.set('patientEtag', pm.response.headers.get('ETag')); ",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 查询患者详情",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/patients/{{patientId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set('patientEtag', pm.response.headers.get('ETag')); ",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 搜索患者列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/patients?q=接口调试&limit=10",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 修改患者",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "{{patientEtag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/merge-patch+json"
+              }
+            ],
+            "url": "{{baseUrl}}/patients/{{patientId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"接口调试患者（已修改）\",\n  \"birthDate\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set('patientEtag', pm.response.headers.get('ETag')); ",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 创建病灶",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idem_lesionCreate}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/lesions",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{lesionId}}\",\n  \"patientId\": \"{{patientId}}\",\n  \"bodySite\": \"左手背\",\n  \"note\": \"调试用虚构数据\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idem_lesionCreate')) pm.collectionVariables.set('idem_lesionCreate', pm.variables.replaceIn('{{$guid}}'));",
+                  "if (!pm.collectionVariables.get('lesionId')) pm.collectionVariables.set('lesionId', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.collectionVariables.set('lesionEtag', pm.response.headers.get('ETag')); ",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 查询病灶详情",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/lesions/{{lesionId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set('lesionEtag', pm.response.headers.get('ETag')); ",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 查询患者的病灶列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/patients/{{patientId}}/lesions?limit=10",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 修改病灶",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "{{lesionEtag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/merge-patch+json"
+              }
+            ],
+            "url": "{{baseUrl}}/lesions/{{lesionId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"调试备注已修改\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set('lesionEtag', pm.response.headers.get('ETag')); ",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 图片上传与采集",
+      "description": "按顺序逐条发送。第03条需要手动选取附件图片；请在上传签名到期前完成 PUT。",
+      "item": [
+        {
+          "name": "01 创建单文件上传会话",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idem_uploadCreate}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/file-uploads",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{patientId}}\",\n  \"sizeBytes\": 83,\n  \"sha256\": \"0aedc9bece813993a4241852d4826e275f95d7cd3877a25e052922f2b84e3c0c\",\n  \"mimeType\": \"image/png\",\n  \"width\": 20,\n  \"height\": 20,\n  \"strategy\": \"SINGLE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idem_uploadCreate')) pm.collectionVariables.set('idem_uploadCreate', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('uploadId', data.id);",
+                  "pm.collectionVariables.set('fileId', data.fileId);",
+                  "pm.collectionVariables.set('uploadUrl', data.uploadUrl);",
+                  "pm.collectionVariables.set('uploadContentType', data.requiredHeaders['Content-Type']);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 查询上传会话并更新签名",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/file-uploads/{{uploadId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('uploadId', data.id);",
+                  "pm.collectionVariables.set('fileId', data.fileId);",
+                  "pm.collectionVariables.set('uploadUrl', data.uploadUrl);",
+                  "pm.collectionVariables.set('uploadContentType', data.requiredHeaders['Content-Type']);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 PUT 测试图片（Body 选择 binary 文件）",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "{{uploadContentType}}"
+              }
+            ],
+            "url": "{{uploadUrl}}",
+            "description": "Body → binary → 选择 docs/testing/sample-20x20.png。必须上传原始文件，保持 Content-Type=image/png。",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 确认上传并校验文件",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idem_uploadComplete}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/file-uploads/{{uploadId}}/complete",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idem_uploadComplete')) pm.collectionVariables.set('idem_uploadComplete', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 查询文件元数据",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/files/{{fileId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 申请下载地址",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/files/{{fileId}}/download-url",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set('downloadUrl', pm.response.json().url);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 下载图片（无需 Bearer）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{downloadUrl}}",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 创建正式采集",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idem_captureCreate}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/captures",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{captureId}}\",\n  \"lesionId\": \"{{lesionId}}\",\n  \"imageFileId\": \"{{fileId}}\",\n  \"capturedAt\": 1700000000000,\n  \"deviceModel\": \"Postman-Debug\",\n  \"source\": \"GALLERY\",\n  \"assetKind\": \"CAPTURE_IMAGE\",\n  \"referenceOnly\": false,\n  \"qualityNote\": \"合成图片，仅用于接口联调\",\n  \"calibration\": null,\n  \"analysis\": null,\n  \"annotation\": null,\n  \"metadata\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idem_captureCreate')) pm.collectionVariables.set('idem_captureCreate', pm.variables.replaceIn('{{$guid}}'));",
+                  "if (!pm.collectionVariables.get('captureId')) pm.collectionVariables.set('captureId', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.collectionVariables.set('captureEtag', pm.response.headers.get('ETag')); ",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 查询采集详情",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/captures/{{captureId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set('captureEtag', pm.response.headers.get('ETag')); ",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 查询病灶采集列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/lesions/{{lesionId}}/captures?limit=10&fromAt=0&toAt=2000000000000",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 修改采集备注",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "{{captureEtag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/merge-patch+json"
+              }
+            ],
+            "url": "{{baseUrl}}/captures/{{captureId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qualityNote\": \"已完成接口联调\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set('captureEtag', pm.response.headers.get('ETag')); ",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 快照与增量同步",
+      "description": "",
+      "item": [
+        {
+          "name": "01 创建一致快照",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idem_snapshotCreate}}"
+              }
+            ],
+            "url": "{{baseUrl}}/sync/snapshots",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idem_snapshotCreate')) pm.collectionVariables.set('idem_snapshotCreate', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.collectionVariables.set('snapshotId', pm.response.json().id);",
+                  "pm.collectionVariables.unset('snapshotPageToken');",
+                  "pm.collectionVariables.unset('syncCursor');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 读取快照首页",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/sync/snapshots/{{snapshotId}}?limit=100",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('snapshotPageToken', data.nextPageToken || '');",
+                  "if (data.nextCursor) pm.collectionVariables.set('syncCursor', data.nextCursor);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 读取快照下一页（有 token 才发送）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/sync/snapshots/{{snapshotId}}?limit=100&pageToken={{snapshotPageToken}}",
+            "description": "仅当上一页 nextPageToken 非 null 时发送，重复直到末页拿到 syncCursor。"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('snapshotPageToken', data.nextPageToken || '');",
+                  "if (data.nextCursor) pm.collectionVariables.set('syncCursor', data.nextCursor);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 拉取增量并更新游标",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/sync/changes?limit=100&cursor={{syncCursor}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set('syncCursor', pm.response.json().nextCursor);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 按需测试（不要整组运行）",
+      "description": "",
+      "item": [
+        {
+          "name": "01 刷新并替换双令牌",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/refresh",
+            "description": "每次都使用最新 refreshToken；重复旧令牌会撤销整个令牌族。",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', data.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', data.refreshToken);",
+                  "pm.collectionVariables.set('tokenExpiresAt', String(data.expiresAt));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 修改资料",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "{{profileEtag}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/merge-patch+json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/me",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"接口调试用户\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "pm.collectionVariables.set('profileEtag', pm.response.headers.get('ETag')); ",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 修改登录密码（会更改真实账号）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idem_passwordChange}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/me/password",
+            "description": "先设置本地 newPassword。成功后手动更新 password；其他会话会失效。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idem_passwordChange')) pm.collectionVariables.set('idem_passwordChange', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 创建旧数据导入计划",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idem_importCreate}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/offline-imports",
+            "description": "将返回 importId 与这里的 importPatientId 用于后续 POST /patients；本请求仅创建计划。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientDatasetId\": \"{{clientDatasetId}}\",\n  \"confirmedPatientIds\": [\n    \"{{importPatientId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idem_importCreate')) pm.collectionVariables.set('idem_importCreate', pm.variables.replaceIn('{{$guid}}'));",
+                  "if (!pm.collectionVariables.get('clientDatasetId')) pm.collectionVariables.set('clientDatasetId', pm.variables.replaceIn('{{$guid}}'));",
+                  "if (!pm.collectionVariables.get('importPatientId')) pm.collectionVariables.set('importPatientId', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "pm.collectionVariables.set('importId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 上传续签（仅完成前）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idem_uploadSign}}"
+              }
+            ],
+            "url": "{{baseUrl}}/file-uploads/{{uploadId}}/sign-single",
+            "description": "每次需要全新的签名时清空 idem_uploadSign。会话 READY 后返回409。"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('idem_uploadSign')) pm.collectionVariables.set('idem_uploadSign', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('uploadUrl', data.url);",
+                  "pm.collectionVariables.set('uploadContentType', data.requiredHeaders['Content-Type']);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 中止上传（仅未确认会话）",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/file-uploads/{{uploadId}}",
+            "description": "会中止当前 uploadId，不要在正式上传流程中误发；READY 会返回409。"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 查询未知任务（预期404）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/jobs/{{jobId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('jobId')) pm.collectionVariables.set('jobId', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 清理测试记录与退出",
+      "description": "最后执行。只操作本次创建的虚构数据；如选择直接删除患者，前两条不再需要执行。",
+      "item": [
+        {
+          "name": "01 删除测试采集",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "{{captureEtag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/captures/{{captureId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 删除测试病灶",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "{{lesionEtag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/lesions/{{lesionId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 删除测试患者",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "{{patientEtag}}"
+              }
+            ],
+            "url": "{{baseUrl}}/patients/{{patientId}}",
+            "description": "会级联删除仍存在的子病灶和采集。删除后仍可在增量同步中查看 DELETE 墓碑。"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 退出当前登录",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/logout",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204', function () { pm.response.to.have.status(204); });",
+                  "if (pm.response.code === 204) {",
+                  "pm.collectionVariables.unset('accessToken');",
+                  "pm.collectionVariables.unset('refreshToken');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>后端接口调试 · Swagger UI</title>
+  <link rel="stylesheet" href="../webjars/swagger-ui/5.32.15/swagger-ui.css">
+  <link rel="stylesheet" href="swagger-local.css?v=2">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">{ }</span><span>接口调试台</span><span class="workspace-label">个人工作区 · P0</span></div>
+    <div class="header-actions">
+      <a class="document-link" href="../v3/api-docs" target="_blank" rel="noopener">OpenAPI JSON <span aria-hidden="true">↗</span></a>
+      <details class="help-menu">
+        <summary>使用说明</summary>
+        <div class="help-content">
+          <strong>开始调试</strong>
+          <p>先选择“账号密码登录”，填写 API 账号密码并执行。将返回的 accessToken 粘贴到 Authorize，只填令牌本身。</p>
+          <p>修改或删除前先查询详情，把响应头 ETag（含双引号）填入 If-Match。新业务更换 Idempotency-Key，网络重试保留原键和正文。</p>
+          <p>图片流程：患者 → 病灶 → 上传会话 → 图片 PUT → complete → 采集。</p>
+          <a href="sample-20x20.png" download="sample-20x20.png">下载 20×20 测试 PNG</a><span class="help-caption">83 字节，与上传示例参数一致</span>
+          <p class="help-notice">Execute 会访问当前数据库，请使用虚构数据。</p>
+        </div>
+      </details>
+      <button type="button" id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="api-sidebar">接口列表</button>
+    </div>
+  </header>
+  <aside id="api-sidebar" class="api-sidebar" aria-label="API 汇总">
+    <div class="sidebar-heading"><h2>API 汇总</h2><span id="api-count" class="count-badge">…</span></div>
+    <div class="search-box">
+      <label class="sr-only" for="api-search">搜索接口</label><span class="search-icon" aria-hidden="true"></span>
+      <input id="api-search" type="search" placeholder="搜索名称、路径或方法" autocomplete="off" spellcheck="false"><kbd title="Ctrl / Command + K">⌘ K</kbd>
+    </div>
+    <p id="nav-summary" class="nav-summary" aria-live="polite">正在加载接口…</p>
+    <nav id="api-list" class="api-list" aria-label="接口列表"></nav>
+    <div class="sidebar-footer"><span class="status-dot" aria-hidden="true"></span>当前开放接口 <span id="api-version"></span></div>
+  </aside>
+  <button id="nav-backdrop" class="nav-backdrop" type="button" aria-label="关闭接口导航" tabindex="-1"></button>
+  <main id="test-workspace" class="test-workspace" aria-label="接口测试信息" aria-busy="true">
+    <header class="workspace-heading">
+      <div class="workspace-breadcrumb"><span id="active-group">接口调试</span><span aria-hidden="true">/</span><span>请求与响应</span></div>
+      <div class="workspace-title-row"><h1 id="active-title">正在加载接口</h1><span id="active-access" class="access-badge" hidden></span></div>
+      <p>填写请求参数，点击 <strong>Execute</strong> 执行，下方查看状态码、响应正文与耗时。</p>
+    </header>
+    <div id="workspace-message" class="workspace-message" role="status">正在载入接口定义…</div>
+    <div id="swagger-ui"></div>
+  </main>
+  <script src="../webjars/swagger-ui/5.32.15/swagger-ui-bundle.js"></script>
+  <script src="swagger-navigation.js?v=2"></script>
+  <script src="swagger-initializer.js?v=2"></script>
+</body>
+</html>

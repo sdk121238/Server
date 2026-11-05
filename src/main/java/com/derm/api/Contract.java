@@ -36,6 +36,7 @@ public class Contract {
         }
         throw ApiException.missing();
     }
+    JsonNode documentationCopy() { return document.deepCopy(); }
     public void validate(String name,JsonNode value) { validate(document.path("components").path("schemas").path(name),value,"$"); }
     public JsonNode normalize(JsonNode schema,JsonNode value) {
         if(schema.has("$ref")) return normalize(document.at(schema.get("$ref").asText().substring(1)),value);

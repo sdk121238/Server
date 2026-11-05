@@ -12,6 +12,8 @@
 6. 出现 `Started ServerApplication` 和 Tomcat 8080 的启动信息后，浏览器打开 `http://127.0.0.1:8080/api/v1/system/health`，返回 `"status":"UP"` 即成功。
 7. 以后停止此进程时，点击 IDEA **Run** 窗口里的红色方块 **■ Stop**。
 
+调试接口时，浏览器打开 **http://127.0.0.1:8080/swagger-ui/index.html**。展开接口后点击 **Try it out → Execute**；登录和授权步骤见 [Swagger 页面说明](swagger-ui.md)。
+
 每次重启电脑后先做第1—2步启动项目数据库，再在IDEA运行。数据库使用3307端口，是本项目独立实例；Windows服务里的原3306实例不能替代它。日常运行无需打开MySQL Workbench。
 
 此配置运行的是已打包JAR。修改Java代码后，需要先重新打包：在IDEA右侧点 **Maven → followup-server → Lifecycle → package**，双击 `package`，看到 **BUILD SUCCESS** 后再运行 **Backend Local - JAR**。若右侧没有Maven窗口，可用 **View → Tool Windows → Maven** 打开。首次使用Maven构建前，在 **File → Project Structure → Project** 中把SDK选为21；若没有21，选择 **Add SDK → JDK**，指定已有路径 `D:\搜狗高速下载\IntelliJ IDEA 2025.1.3\jbr`。
