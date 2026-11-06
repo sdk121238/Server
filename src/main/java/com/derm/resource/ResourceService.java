@@ -22,12 +22,16 @@ public class ResourceService {
     private final SyncService sync;
     private final PatientDetails patients;
     private final AccessPolicy access;
+    /** 初始化本组件所需的依赖与配置。 */
     public ResourceService(Records records,JdbcTemplate db,Json json,Contract contract,CaptureValidation validation,UploadService uploads,SyncService sync,PatientDetails patients,AccessPolicy access) {
         this.records=records;this.db=db;this.json=json;this.contract=contract;this.captureValidation=validation;this.uploads=uploads;this.sync=sync;
         this.patients=patients;this.access=access;
     }
+    /** 仅为患者资源补充年龄和医生摘要，其他资源保持原结构。 */
     private ObjectNode present(Kind kind,ObjectNode data) {return kind==Kind.PATIENT?patients.present(data):data;}
+    /** 按角色校验读取范围，并返回资源与版本ETag。 */
     public ApiResult get(Kind kind,Actor actor,String id) { return ApiResult.resource(200,present(kind,records.read(kind,actor.userId(),id).data())); }
+    /** 校验父资源及文件归属，创建资源并记录版本历史和同步事件。 */
     public ApiResult create(Kind kind,Actor actor,JsonNode input) {
         String user=actor.userId(),id=input.get("id").asText();
         if(records.exists(kind,id)) throw new ApiException(409,"ID_CONFLICT","ID已被使用，请确认原记录");
@@ -58,6 +62,7 @@ public class ResourceService {
         if(kind==Kind.PATIENT) records.patientColumns(data);
         records.event(user,kind,data,"UPSERT"); return ApiResult.resource(201,present(kind,data));
     }
+    /** 按所有权和If-Match更新资源，校验采集结果并维护版本及同步事件。 */
     public ApiResult patch(Kind kind,Actor actor,String id,JsonNode patch,String match) {
         var row=records.get(kind,actor.userId(),id); Preconditions.check(match,row.revision(),id);
         ObjectNode next=json.merge(row.data(),patch);
@@ -76,6 +81,7 @@ public class ResourceService {
         records.update(kind,actor.userId(),next); if(kind==Kind.CAPTURE) records.history(actor.userId(),next);
         records.event(actor.userId(),kind,next,"UPSERT"); return ApiResult.resource(200,present(kind,next));
     }
+    /** 软删除本人资源，并在同一事务中为子资源写入删除墓碑。 */
     public ApiResult delete(Kind kind,Actor actor,String id,String match) {
         var row=records.get(kind,actor.userId(),id); Preconditions.check(match,row.revision(),id);
         // Write parent tombstone before its children, all under one scope lock and one transaction.
@@ -86,14 +92,17 @@ public class ResourceService {
         } else if(kind==Kind.LESION) for(ObjectNode capture:records.all(Kind.CAPTURE,actor.userId())) if(capture.get("lesionId").asText().equals(id)) tombstone(Kind.CAPTURE,actor.userId(),capture);
         return ApiResult.empty();
     }
+    /** 递增版本并标记删除时间，保存必要历史和同步删除事件。 */
     private void tombstone(Kind kind,String user,ObjectNode data) {
         data=data.deepCopy(); long now=System.currentTimeMillis();
         data.put("revision",data.get("revision").asLong()+1).put("deletedAt",now).put("updatedAt",now);
         records.update(kind,user,data); if(kind==Kind.CAPTURE) records.history(user,data); records.event(user,kind,data,"DELETE");
     }
+    /** 按角色、父资源和筛选条件执行SQL游标分页，令牌绑定访问范围。 */
     public ApiResult list(Kind kind,Actor actor,String parent,String query,String pageToken,int limit,Long from,Long to) {
         return list(kind,actor,parent,query,pageToken,limit,from,to,"all");
     }
+    /** 按角色、父资源和筛选条件执行SQL游标分页，令牌绑定访问范围。 */
     public ApiResult list(Kind kind,Actor actor,String parent,String query,String pageToken,int limit,Long from,Long to,String scope) {
         if(!Set.of("all","mine").contains(scope)) throw ApiException.invalid("scope只能为all或mine");
         boolean doctor=access.isDoctor(actor.userId());
@@ -125,6 +134,7 @@ public class ResourceService {
         }
         return ApiResult.ok(out);
     }
+    /** 分页列出有效医生的ID和显示名，供主治医师选择使用。 */
     public ApiResult doctors(Actor actor,String query,String token,int limit) {
         access.isDoctor(actor.userId());
         if(query!=null&&query.length()>128) throw ApiException.invalid("搜索词过长");

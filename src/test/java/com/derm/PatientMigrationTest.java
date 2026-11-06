@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.UUID;
 
 class PatientMigrationTest {
+    /** 验证旧患者迁移回填且版本及归属不变。 */
     @Test void legacyPatientBirthdayIsBackfilledWithoutChangingRevisionOrOwnership() {
         String url="jdbc:h2:mem:migration-"+UUID.randomUUID()+";MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
         Flyway.configure().dataSource(url,"sa","").target("1").load().migrate();

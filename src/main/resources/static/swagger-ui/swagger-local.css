@@ -1,3 +1,4 @@
+/* 调试台样式：共享色彩 → 顶栏与接口导航 → Swagger表单 → 窄屏与无障碍适配。 */
 :root { --ink: #172c46; --muted: #758296; --line: #e5eaf0; --blue: #2861df; --sidebar: 330px; }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }

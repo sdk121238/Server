@@ -9,7 +9,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 public class RequestIds extends OncePerRequestFilter {
+    /** 读取当前请求已分配的追踪ID。 */
     public static String id(HttpServletRequest request) { return (String)request.getAttribute("requestId"); }
+    /** 为请求分配追踪ID，并设置响应追踪头和内容类型保护头。 */
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain) throws ServletException,IOException {
         // Always generate a server identifier; untrusted headers may contain patient information.
         String id=UUID.randomUUID().toString(); request.setAttribute("requestId",id); response.setHeader("X-Request-Id",id);

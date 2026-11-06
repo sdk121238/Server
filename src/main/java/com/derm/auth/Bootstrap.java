@@ -11,12 +11,14 @@ public class Bootstrap implements ApplicationRunner {
     private final String account,password;
     private final ConfigurableApplicationContext context;
     private final String provisionAccount,provisionPassword,provisionName,provisionRole;
+    /** 初始化本组件所需的依赖与配置。 */
     public Bootstrap(AuthService auth,@Value("${app.bootstrap-account}")String account,@Value("${app.bootstrap-password}")String password,
         ConfigurableApplicationContext context,@Value("${app.provision-account:}")String provisionAccount,
         @Value("${app.provision-password:}")String provisionPassword,@Value("${app.provision-name:}")String provisionName,@Value("${app.provision-role:PATIENT}")String provisionRole) {
         this.auth=auth;this.account=account;this.password=password;this.context=context;
         this.provisionAccount=provisionAccount;this.provisionPassword=provisionPassword;this.provisionName=provisionName;this.provisionRole=provisionRole;
     }
+    /** 启动时预置患者账号，或在非Web维护模式下创建账号并退出。 */
     @Override public void run(ApplicationArguments args) {
         if(!provisionAccount.isBlank()) {
             if(context.getEnvironment().getProperty("spring.main.web-application-type","").equalsIgnoreCase("none")) {

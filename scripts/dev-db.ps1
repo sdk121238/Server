@@ -1,4 +1,5 @@
-﻿param([ValidateSet('start','stop','status')][string]$Action='start')
+﻿# 复用现有MySQL二进制管理3307项目实例及本机凭据。
+param([ValidateSet('start','stop','status')][string]$Action='start')
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $dbRoot=Join-Path $projectRoot '.codex-build\mysql-dev'
@@ -6,6 +7,7 @@ $secretPath=Join-Path $dbRoot 'secrets.json'
 $mysqlBin='C:\Program Files\MySQL\MySQL Server 8.0\bin'
 $dbPort=3307
 
+# 收紧本机凭据文件的访问权限。
 function Protect-LocalFile([string]$path) {
     $sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User
     # The Codex sandbox identity may differ from the desktop account that owns the project.
@@ -14,11 +16,13 @@ function Protect-LocalFile([string]$path) {
     & icacls.exe $path /inheritance:r /grant:r ('*'+$sid.Value+':F') ('*'+$desktopSid.Value+':F') '*S-1-5-18:F' | Out-Null
     if($LASTEXITCODE -ne 0) { throw 'Could not restrict local credential file access.' }
 }
+# 生成本机初始化所需的安全随机密钥。
 function New-Secret {
     $bytes=New-Object byte[] 32
     [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
     return [Convert]::ToBase64String($bytes)
 }
+# 使用临时凭据环境执行本机MySQL命令，结束后恢复环境。
 function Invoke-LocalMysql([string[]]$sqlArgs) {
     $savedPassword=$env:MYSQL_PWD
     try {

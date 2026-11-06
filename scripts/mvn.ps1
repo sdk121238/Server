@@ -1,4 +1,5 @@
-﻿param([switch]$SkipLocal,[Parameter(ValueFromRemainingArguments=$true)][string[]]$MavenArgs)
+﻿# 复用本机JDK与Maven，加载本地配置并执行构建命令。
+param([switch]$SkipLocal,[Parameter(ValueFromRemainingArguments=$true)][string[]]$MavenArgs)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $localConfig = Join-Path $PSScriptRoot 'local.ps1'

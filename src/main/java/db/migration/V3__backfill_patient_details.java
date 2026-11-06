@@ -8,6 +8,7 @@ import java.time.LocalDate;
 
 /** Add nullable demographic defaults without changing business versions or sync events. */
 public class V3__backfill_patient_details extends BaseJavaMigration {
+    /** 回填旧患者姓名、出生年月和可空字段，不修改业务版本、时间或同步事件。 */
     @Override public void migrate(Context context) throws Exception {
         ObjectMapper json=new ObjectMapper();
         try(var query=context.getConnection().prepareStatement("SELECT id,payload FROM patients");var rows=query.executeQuery();

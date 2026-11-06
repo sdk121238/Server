@@ -17,8 +17,11 @@ public class ImageFiles {
     public static final long MAX_BYTES=104857600;
     public static final long MAX_PIXELS=40_000_000;
     private final Path root;
+    /** 初始化私有图片存储目录。 */
     public ImageFiles(@Value("${app.storage-root}")String root) throws IOException { this.root=Path.of(root).toAbsolutePath().normalize();Files.createDirectories(this.root); }
+    /** 校验UUID后生成私有存储路径，避免任意路径访问。 */
     public Path path(String id,String suffix) { Contract.uuid(id);return root.resolve(id+suffix); }
+    /** 流式接收图片到临时文件，限制实际字节数并清理失败文件。 */
     public Path receive(String upload,InputStream input,long expected) throws IOException {
         Path temporary=path(upload,"."+UUID.randomUUID()+".tmp");
         try(var output=Files.newOutputStream(temporary,StandardOpenOption.CREATE_NEW)) {
@@ -30,7 +33,9 @@ public class ImageFiles {
         } catch(Exception e) { Files.deleteIfExists(temporary);throw e; }
         return temporary;
     }
+    /** 将接收完成的临时文件移入待确认位置。 */
     public void stage(Path temporary,String upload) throws IOException { Files.move(temporary,path(upload,".staging"),StandardCopyOption.REPLACE_EXISTING); }
+    /** 校验文件长度、哈希、真实类型及尺寸，成功后确认为正式图片。 */
     public void confirm(String upload,String file,JsonNode metadata) {
         Path staged=path(upload,".staging"),ready=path(file,".image");
         Path source=Files.isRegularFile(staged)?staged:ready;

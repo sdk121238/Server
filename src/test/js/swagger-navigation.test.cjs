@@ -5,6 +5,7 @@ const path = require('node:path');
 const navigation = require('../../main/resources/static/swagger-ui/swagger-navigation.js');
 const spec = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../docs/frontend-p0.openapi.json'), 'utf8'));
 
+// 验证导航完整列出当前接口且不显示空的规划模块。
 test('navigation lists every available operation once and omits empty planning groups', () => {
   const operations = navigation.buildOperations(spec);
   assert.equal(operations.length, 38);
@@ -15,6 +16,7 @@ test('navigation lists every available operation once and omits empty planning g
   assert.equal(operations.find(operation => operation.method === 'PUT' && operation.path.startsWith('/objects/')).requiresAuth, false);
 });
 
+// 验证中文、路径、方法组合搜索及空结果。
 test('search matches Chinese names, paths and methods together without case sensitivity', () => {
   const operations = navigation.buildOperations(spec);
   const patientPost = navigation.filterOperations(operations, 'post /patients');
@@ -26,6 +28,7 @@ test('search matches Chinese names, paths and methods together without case sens
   assert.equal(navigation.filterOperations(operations, '   ').length, 38);
 });
 
+// 验证接口链接恢复及异常编码容错。
 test('deep links restore the exact operation and malformed or unknown links are harmless', () => {
   const operations = navigation.buildOperations(spec);
   for (const operation of operations) {

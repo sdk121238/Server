@@ -18,10 +18,12 @@ import java.nio.file.*;
 public class UploadService {
     private final JdbcTemplate db;private final Json json;private final Crypto crypto;private final Records records;
     private final ImageFiles images;private final AuthService auth;private final TransactionTemplate tx;private final String publicUrl;
+    /** 初始化本组件所需的依赖与配置。 */
     public UploadService(JdbcTemplate db,Json json,Crypto crypto,Records records,ImageFiles images,AuthService auth,TransactionTemplate tx,@Value("${app.public-url}")String url) {
         this.db=db;this.json=json;this.crypto=crypto;this.records=records;this.images=images;this.auth=auth;this.tx=tx;
         if(!url.matches("https?://[^?#]+")) throw new IllegalArgumentException("APP_PUBLIC_URL must be an absolute HTTP(S) URL without query or fragment"); publicUrl=url.replaceAll("/+$","");
     }
+    /** 验证患者归属与图片声明，创建待确认文件及单文件上传会话。 */
     public ApiResult create(Actor actor,JsonNode input) {
         String patient=input.get("patientId").asText();records.get(Kind.PATIENT,actor.userId(),patient);
         if(!"SINGLE".equals(input.get("strategy").asText())) throw new ApiException(422,"VALIDATION_ERROR","当前仅支持SINGLE上传");
@@ -33,11 +35,13 @@ public class UploadService {
         db.update("INSERT INTO file_uploads(id,file_id,owner_id,patient_id,state,expires_at,created_at) VALUES(?,?,?,?,'PENDING',?,?)",id,file,actor.userId(),patient,expires,now);
         return new ApiResult(201,upload(actor.userId(),id),null);
     }
+    /** 读取本人上传会话并检查患者有效性和会话过期时间。 */
     private Map<String,Object> uploadRow(String owner,String id) {
         var rows=db.queryForList("SELECT * FROM file_uploads WHERE id=? AND owner_id=?",id,owner);
         if(rows.isEmpty()) throw ApiException.missing();var row=rows.getFirst();records.get(Kind.PATIENT,owner,row.get("patient_id").toString());
         if(((Number)row.get("expires_at")).longValue()<=System.currentTimeMillis()) throw new ApiException(410,"UPLOAD_EXPIRED","上传会话已过期");return row;
     }
+    /** 返回上传会话状态，必要时附带短期上传签名。 */
     public ObjectNode upload(String owner,String id) {
         var row=uploadRow(owner,id);String state=row.get("state").toString();
         ObjectNode out=json.object().put("id",id).put("fileId",row.get("file_id").toString()).put("strategy","SINGLE").put("state",state).put("expiresAt",((Number)row.get("expires_at")).longValue());
@@ -45,9 +49,11 @@ public class UploadService {
         if(Set.of("PENDING","UPLOADING").contains(state)) { ObjectNode signed=sign(owner,id);out.put("uploadUrl",signed.get("url").asText()).put("urlExpiresAt",signed.get("urlExpiresAt").asLong());out.set("requiredHeaders",signed.get("requiredHeaders")); }
         return out;
     }
+    /** 生成绑定访问者、用途和过期时间的对象签名URL。 */
     private String signedUrl(String id,String owner,String kind,long expires) {
         return publicUrl+"/objects/"+id+"?ticket="+crypto.sign(json.object().put("id",id).put("owner",owner).put("kind",kind).put("expiresAt",expires));
     }
+    /** 仅为未结束的本人上传会话续签短期URL及请求头。 */
     public ObjectNode sign(String owner,String id) {
         var row=uploadRow(owner,id);
         if(!Set.of("PENDING","UPLOADING").contains(row.get("state").toString())) throw new ApiException(409,"INVALID_TRANSITION","上传已结束，不能再次写入");
@@ -55,10 +61,12 @@ public class UploadService {
         ObjectNode out=json.object().put("url",signedUrl(id,owner,"upload",expires)).put("urlExpiresAt",expires);
         var headers=json.object().put("Content-Type",file(owner,row.get("file_id").toString()).get("mimeType").asText());out.set("requiredHeaders",headers);return out;
     }
+    /** 读取本人文件元信息并检查父患者仍然有效。 */
     public ObjectNode file(String owner,String id) {
         var rows=db.queryForList("SELECT patient_id,payload FROM files WHERE id=? AND owner_id=? AND state<>'DELETED'",id,owner);
         if(rows.isEmpty()) throw ApiException.missing();records.get(Kind.PATIENT,owner,rows.getFirst().get("patient_id").toString());return (ObjectNode)json.read(rows.getFirst().get("payload").toString());
     }
+    /** 校验角色读取范围；跨账号只允许读取已完成校验的文件信息。 */
     public ObjectNode readFile(String user,String id) {
         var rows=db.queryForList("SELECT owner_id,patient_id,state FROM files WHERE id=? AND state<>'DELETED'",id);
         if(rows.isEmpty()) throw ApiException.missing();var row=rows.getFirst();
@@ -66,6 +74,7 @@ public class UploadService {
         records.read(Kind.PATIENT,user,row.get("patient_id").toString());
         return file(row.get("owner_id").toString(),id);
     }
+    /** 校验文件与指定患者一致且已READY，供创建或修改采集引用。 */
     public JsonNode readyFile(String owner,String id,String patient) {
         ObjectNode metadata=file(owner,id);
         String actual=db.queryForObject("SELECT patient_id FROM files WHERE id=? AND owner_id=?",String.class,id,owner);
@@ -73,6 +82,7 @@ public class UploadService {
         if(!"READY".equals(metadata.get("state").asText())) throw new ApiException(409,"FILE_NOT_READY","文件尚未完成校验");
         return metadata;
     }
+    /** 校验已上传字节并将文件和上传会话转为READY。 */
     public ApiResult complete(Actor actor,String id,JsonNode input) {
         var row=uploadRow(actor.userId(),id);String state=row.get("state").toString();
         if(input.has("parts")&&input.get("parts").size()>0) throw ApiException.invalid("单文件上传不能提交分片");
@@ -85,16 +95,19 @@ public class UploadService {
         }
         return ApiResult.ok(metadata);
     }
+    /** 中止本人未确认的上传，已READY文件不能中止。 */
     public ApiResult abort(Actor actor,String id) {
         var row=uploadRow(actor.userId(),id);if("READY".equals(row.get("state"))) throw new ApiException(409,"INVALID_TRANSITION","已确认文件不能中止");
         db.update("UPDATE file_uploads SET state='ABORTED' WHERE id=?",id);return ApiResult.empty();
     }
+    /** 校验读取权限并申请绑定访问者的短期下载URL。 */
     public ApiResult download(Actor actor,String id) {
         ObjectNode metadata=readFile(actor.userId(),id);if(!"READY".equals(metadata.get("state").asText())) throw new ApiException(409,"FILE_NOT_READY","文件尚未完成校验");
         long expires=System.currentTimeMillis()+120_000;
         ObjectNode out=json.object().put("url",signedUrl(id,actor.userId(),"download",expires)).put("expiresAt",expires);
         for(String key:List.of("sha256","sizeBytes","mimeType")) out.set(key,metadata.get(key));return ApiResult.ok(out);
     }
+    /** 验证上传票据和文件类型，接收字节后在账号锁内更新上传状态。 */
     public void put(String id,String ticket,String contentType,InputStream stream) throws IOException {
         Contract.uuid(id);JsonNode payload=crypto.verify(ticket,"upload",403,"FORBIDDEN");
         if(!id.equals(payload.path("id").asText())) throw new ApiException(403,"FORBIDDEN","上传凭证不匹配");String owner=payload.path("owner").asText();
@@ -111,6 +124,7 @@ public class UploadService {
         } finally { Files.deleteIfExists(temporary); }
     }
     public record Download(Path path,String mimeType,long size) {}
+    /** 下载时重新校验账号、实时权限、患者和文件状态，返回私有图片路径。 */
     public Download get(String id,String ticket) {
         Contract.uuid(id);JsonNode payload=crypto.verify(ticket,"download",403,"FORBIDDEN");
         if(!id.equals(payload.path("id").asText())) throw new ApiException(403,"FORBIDDEN","下载凭证不匹配");

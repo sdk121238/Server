@@ -7,6 +7,7 @@ import java.util.*;
 
 @Component
 public class CaptureValidation {
+    /** 校验图片尺寸、标注、标定和分析面积之间的业务一致性。 */
     public void validate(JsonNode capture,JsonNode file) {
         JsonNode annotation=capture.path("annotation"),analysis=capture.path("analysis"),calibration=capture.path("calibration");
         double polygonArea=0;
@@ -26,19 +27,24 @@ public class CaptureValidation {
             if(!Double.isFinite(expected)||Math.abs(actual-expected)>Math.max(0.01,expected*0.02)) throw ApiException.invalid("面积与标注和尺度不一致");
         }
     }
+    /** 使用鞋带公式计算轮廓多边形的像素面积。 */
     private double area(JsonNode points) {
         double sum=0;
         for(int i=0;i<points.size();i++) { JsonNode a=points.get(i),b=points.get((i+1)%points.size()); sum+=a.get("x").asDouble()*b.get("y").asDouble()-b.get("x").asDouble()*a.get("y").asDouble(); }
         return Math.abs(sum)/2;
     }
+    /** 计算二维叉积，供共线与线段相交判断使用。 */
     private double cross(JsonNode a,JsonNode b,JsonNode c) { return (b.get("x").asDouble()-a.get("x").asDouble())*(c.get("y").asDouble()-a.get("y").asDouble())-(b.get("y").asDouble()-a.get("y").asDouble())*(c.get("x").asDouble()-a.get("x").asDouble()); }
+    /** 判断共线点是否位于线段的闭区间内。 */
     private boolean on(JsonNode a,JsonNode b,JsonNode c) {
         return c.get("x").asDouble()>=Math.min(a.get("x").asDouble(),b.get("x").asDouble())&&c.get("x").asDouble()<=Math.max(a.get("x").asDouble(),b.get("x").asDouble())&&c.get("y").asDouble()>=Math.min(a.get("y").asDouble(),b.get("y").asDouble())&&c.get("y").asDouble()<=Math.max(a.get("y").asDouble(),b.get("y").asDouble());
     }
+    /** 判断两条线段是否相交，包括端点及共线重叠。 */
     private boolean intersects(JsonNode a,JsonNode b,JsonNode c,JsonNode d) {
         double abC=cross(a,b,c),abD=cross(a,b,d),cdA=cross(c,d,a),cdB=cross(c,d,b);
         return (abC*abD<0&&cdA*cdB<0)||(Math.abs(abC)<1e-9&&on(a,b,c))||(Math.abs(abD)<1e-9&&on(a,b,d))||(Math.abs(cdA)<1e-9&&on(c,d,a))||(Math.abs(cdB)<1e-9&&on(c,d,b));
     }
+    /** 检查轮廓点及非相邻边，拒绝退化或自相交多边形。 */
     private void ensureSimple(JsonNode points) {
         Set<String> distinct=new HashSet<>(); int n=points.size();
         for(JsonNode p:points) if(!distinct.add(p.get("x").asDouble()+":"+p.get("y").asDouble())) throw ApiException.invalid("轮廓顶点不能重复");

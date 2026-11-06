@@ -1,4 +1,5 @@
-﻿$ErrorActionPreference='Stop'
+﻿# 只重建独立测试库并运行MySQL回归，保留业务库。
+$ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $secretPath=Join-Path $projectRoot '.codex-build\mysql-dev\secrets.json'
 if(-not (Test-Path -LiteralPath $secretPath)) { throw 'Run scripts/dev-db.ps1 start first.' }

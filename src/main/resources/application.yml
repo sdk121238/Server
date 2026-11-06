@@ -1,3 +1,4 @@
+# 运行配置；数据库、密钥与账号密码通过本机环境变量注入。
 server:
   address: ${SERVER_ADDRESS:127.0.0.1}
   port: ${SERVER_PORT:8080}

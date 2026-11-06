@@ -15,7 +15,9 @@ public class Writes {
     private final AuthService auth;
     private final Json json;
     private final ErrorHandler errors;
+    /** 初始化本组件所需的依赖与配置。 */
     public Writes(JdbcTemplate db,TransactionTemplate tx,AuthService auth,Json json,ErrorHandler errors) { this.db=db;this.tx=tx;this.auth=auth;this.json=json;this.errors=errors; }
+    /** 锁定当前账号并复核会话，原子提交业务、幂等结果及同步事件。 */
     public ApiResult run(Actor actor,String method,String path,String key,JsonNode body,String requestId,Supplier<ApiResult> action) {
         return tx.execute(status->{
             auth.lock(actor.userId());

@@ -1,4 +1,5 @@
-﻿param([ValidateSet('start','stop','status')][string]$Action='start')
+﻿# 按记录的PID及启动时间管理本项目后台服务，避免停止无关Java进程。
+param([ValidateSet('start','stop','status')][string]$Action='start')
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $statePath=Join-Path $projectRoot '.codex-build\server-process.json'

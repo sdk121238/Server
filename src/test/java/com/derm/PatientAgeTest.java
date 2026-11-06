@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 class PatientAgeTest {
     final ObjectMapper json=new ObjectMapper();
+    /** 验证完整生日、仅年月及闰日的年龄计算边界。 */
     @Test void completeBirthdayAndMonthOnlyHaveExplicitBoundaryRules() throws Exception {
         var birthday=json.readTree("{\"birthDate\":\"2000-11-06\",\"birthYearMonth\":\"2000-11\"}");
         assertThat(PatientDetails.age(birthday,LocalDate.of(2026,11,5))).isEqualTo(25);

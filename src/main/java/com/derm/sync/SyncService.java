@@ -16,23 +16,31 @@ public class SyncService {
     private final Json json;
     private final Crypto crypto;
     private final Records records;
+    /** 初始化本组件所需的依赖与配置。 */
     public SyncService(JdbcTemplate db,Json json,Crypto crypto,Records records) { this.db=db;this.json=json;this.crypto=crypto;this.records=records; }
+    /** 读取账号同步代次，用于使旧范围的游标失效。 */
     private long generation(String owner) { return db.queryForObject("SELECT generation FROM users WHERE id=?",Long.class,owner); }
+    /** 构造包含账号、用途、代次和有效期的票据载荷。 */
     private ObjectNode bound(String owner,String kind,long expires) {
         return json.object().put("owner",owner).put("kind",kind).put("generation",generation(owner)).put("expiresAt",expires);
     }
+    /** 验证同步票据签名、账号绑定及同步代次。 */
     private JsonNode read(String token,String owner,String kind) {
         JsonNode node=crypto.verify(token,kind,410,"SYNC_RESET_REQUIRED");
         if(!owner.equals(node.path("owner").asText())||generation(owner)!=node.path("generation").asLong()) throw reset(); return node;
     }
+    /** 生成绑定查询条件与最后位置的普通分页令牌。 */
     public String pageToken(String owner,String binding,String id,long time) {
         return crypto.sign(bound(owner,"page",System.currentTimeMillis()+86400_000).put("binding",binding).put("id",id).put("time",time));
     }
+    /** 验证分页令牌与当前查询条件一致；首页返回空位置。 */
     public JsonNode readPage(String token,String owner,String binding) {
         if(token==null) return json.object(); JsonNode node=read(token,owner,"page");
         if(!binding.equals(node.path("binding").asText())) throw reset(); return node;
     }
+    /** 为指定提交水位生成增量同步游标。 */
     private String cursor(String owner,long position) { return crypto.sign(bound(owner,"sync",System.currentTimeMillis()+90L*86400_000).put("position",position)); }
+    /** 冻结本人拥有的当前资源，保存一致性首次同步快照。 */
     public ApiResult snapshot(Actor actor) {
         String owner=actor.userId(),id=UUID.randomUUID().toString(); long expires=System.currentTimeMillis()+86400_000;
         long position=db.queryForObject("SELECT sync_position FROM users WHERE id=?",Long.class,owner);
@@ -44,6 +52,7 @@ public class SyncService {
         }
         return new ApiResult(201,json.object().put("id",id).put("expiresAt",expires),null);
     }
+    /** 分页读取冻结快照，末页返回可继续拉取增量的游标。 */
     public ApiResult snapshotPage(Actor actor,String id,String token,int limit) {
         var rows=db.queryForList("SELECT * FROM sync_snapshots WHERE id=? AND owner_id=?",id,actor.userId());
         if(rows.isEmpty()) throw ApiException.missing(); var row=rows.getFirst();
@@ -57,6 +66,7 @@ public class SyncService {
         else out.put("nextCursor",cursor(actor.userId(),((Number)row.get("position")).longValue()));
         return ApiResult.ok(out);
     }
+    /** 按已提交水位读取本人变更，返回下一游标和是否还有数据。 */
     public ApiResult changes(Actor actor,String token,int limit) {
         long position=read(token,actor.userId(),"sync").path("position").asLong(-1);
         long upper=db.queryForObject("SELECT sync_position FROM users WHERE id=?",Long.class,actor.userId());
@@ -66,12 +76,14 @@ public class SyncService {
         for(int i=0;i<Math.min(limit,rows.size());i++) { var row=rows.get(i); items.add(json.read(row.get("payload").toString()));next=((Number)row.get("position")).longValue(); }
         ObjectNode out=json.object().put("nextCursor",cursor(actor.userId(),next)).put("hasMore",rows.size()>limit);out.set("items",items);return ApiResult.ok(out);
     }
+    /** 保存经确认的个人离线患者导入范围，不直接创建患者。 */
     public ApiResult createImport(Actor actor,JsonNode input) {
         if(input.hasNonNull("targetOrganizationId")) throw new ApiException(403,"FORBIDDEN","当前未启用机构工作区");
         String id=UUID.randomUUID().toString();long expires=System.currentTimeMillis()+30L*86400_000;
         db.update("INSERT INTO offline_imports(id,owner_id,dataset_id,allowed_patients,expires_at) VALUES(?,?,?,?,?)",id,actor.userId(),input.get("clientDatasetId").asText(),json.write(input.get("confirmedPatientIds")),expires);
         ObjectNode out=json.object().put("id",id).put("expiresAt",expires);out.set("allowedPatientIds",input.get("confirmedPatientIds"));return new ApiResult(201,out,null);
     }
+    /** 创建资源时校验导入计划归属、有效期及患者是否在确认范围。 */
     public void checkImport(String owner,JsonNode input,String patient) {
         if(!input.has("importId")) return;
         var rows=db.queryForList("SELECT allowed_patients,expires_at FROM offline_imports WHERE id=? AND owner_id=?",input.get("importId").asText(),owner);
@@ -80,5 +92,6 @@ public class SyncService {
         boolean allowed=false;for(JsonNode id:json.read(row.get("allowed_patients").toString())) if(id.asText().equals(patient)) allowed=true;
         if(!allowed) throw new ApiException(403,"FORBIDDEN","患者不在已确认导入范围内");
     }
+    /** 构造需重新建立同步快照的410异常。 */
     private static ApiException reset() { return new ApiException(410,"SYNC_RESET_REQUIRED","同步范围或游标已失效，请重新建立快照"); }
 }

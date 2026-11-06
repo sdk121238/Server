@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 
 
+# 生成带长度和CRC校验的PNG数据块。
 def png_chunk(kind, data):
     return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data) & 0xffffffff)
 
@@ -25,6 +26,7 @@ NO_AUTH = {'type': 'noauth'}
 covered = set()
 
 
+# 生成Postman请求及校验脚本，并记录合同路由覆盖情况。
 def request(name, method, path, status=200, body=None, *, idem=None, revision=None,
             save=None, resource=None, init=(), auth=True, binary=False, description=''):
     headers = []
@@ -65,6 +67,7 @@ def request(name, method, path, status=200, body=None, *, idem=None, revision=No
     return {'name': name, 'request': req, 'event': events}
 
 
+# 将相关测试请求组织成Postman文件夹。
 def folder(name, items, description=''):
     return {'name': name, 'description': description, 'item': items}
 

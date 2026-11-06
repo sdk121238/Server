@@ -1,3 +1,4 @@
+# MySQL验证只连接可重建的derm_followup_test库。
 spring:
   datasource:
     url: ${TEST_DB_URL:jdbc:mysql://127.0.0.1:3307/derm_followup_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&allowPublicKeyRetrieval=true&sslMode=DISABLED}

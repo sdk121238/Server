@@ -14,6 +14,7 @@ public class Contract {
     public record Match(Route route,Map<String,String> params) {}
     private final JsonNode document;
     private final List<Route> routes=new ArrayList<>();
+    /** 初始化接口合同及路由匹配规则。 */
     public Contract(Json json) throws Exception {
         try(var stream=new ClassPathResource("contract/backend-v1.openapi.json").getInputStream()) { document=json.mapper.readTree(stream); }
         document.path("paths").fields().forEachRemaining(p->p.getValue().fields().forEachRemaining(op->{
@@ -25,6 +26,7 @@ public class Contract {
             routes.add(new Route(op.getKey().toUpperCase(Locale.ROOT),p.getKey(),op.getValue(),Pattern.compile(regex.toString()),names));
         }));
     }
+    /** 按方法和路径匹配合同路由，校验并规范化路径UUID。 */
     public Match match(String method,String path) {
         for(Route route:routes) {
             Matcher m=route.pattern.matcher(path);
@@ -36,8 +38,11 @@ public class Contract {
         }
         throw ApiException.missing();
     }
+    /** 返回合同副本，避免Swagger展示修改影响运行时校验。 */
     JsonNode documentationCopy() { return document.deepCopy(); }
+    /** 依据合同Schema递归校验类型、必填字段、格式和取值范围。 */
     public void validate(String name,JsonNode value) { validate(document.path("components").path("schemas").path(name),value,"$"); }
+    /** 递归规范化UUID大小写，保留对象和数组的原有结构。 */
     public JsonNode normalize(JsonNode schema,JsonNode value) {
         if(schema.has("$ref")) return normalize(document.at(schema.get("$ref").asText().substring(1)),value);
         if(value==null||value.isNull()) return value;
@@ -51,6 +56,7 @@ public class Contract {
         }
         return value;
     }
+    /** 依据合同Schema递归校验类型、必填字段、格式和取值范围。 */
     public void validate(JsonNode schema,JsonNode value,String path) {
         if(schema.has("$ref")) { validate(document.at(schema.get("$ref").asText().substring(1)),value,path); return; }
         if(value==null||value.isNull()) { if(!schema.path("nullable").asBoolean()) fail(path); return; }
@@ -91,6 +97,8 @@ public class Contract {
             default -> { }
         }
     }
+    /** 抛出包含字段路径的合同校验异常。 */
     private void fail(String path) { throw ApiException.invalid("字段不符合合同："+path); }
+    /** 拒绝不符合标准UUID文本格式的标识符。 */
     public static void uuid(String id) { if(id==null||!id.matches("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")) throw ApiException.invalid("UUID格式不合法"); }
 }

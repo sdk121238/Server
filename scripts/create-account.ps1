@@ -1,4 +1,5 @@
-﻿param([string]$Account,[ValidateSet('PATIENT','HOSPITAL_STAFF')][string]$Role,[string]$DisplayName)
+﻿# 交互创建患者或医生账号，密码不回显且不覆盖现有账号。
+param([string]$Account,[ValidateSet('PATIENT','HOSPITAL_STAFF')][string]$Role,[string]$DisplayName)
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $jar=Join-Path $projectRoot 'target\followup-server-0.1.0.jar'

@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("test")
 class AccountProvisioningTest {
+    /** 验证本机账号创建保存角色且不会覆盖同名账号。 */
     @Autowired AuthService auth;
     @Autowired JdbcTemplate db;
     @Test void localDoctorCreationStoresRoleAndCannotPromoteOrOverwriteExistingAccount() {

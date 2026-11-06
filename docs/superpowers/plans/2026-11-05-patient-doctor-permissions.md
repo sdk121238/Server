@@ -56,7 +56,7 @@ Files: Swagger examples, frontend field/openapi/handoff artifacts, role guide, R
 - [ ] Fresh final review; fix material findings with reproductions and rerun checks.
 - [ ] Back up project database, stop script-owned server, package, start with migrations and verify health/schema.
 
-Implementation record: target/patient-doctor-progress.md. Existing workspace contains the complete uncommitted project and running local installation; apply authorized changes in place, without discarding changes, creating commits, or moving private runtime data.
+Implementation record: docs/implementation-status.md (completed; temporary execution ledger cleaned). Existing workspace contains the complete uncommitted project and running local installation; apply authorized changes in place, without discarding changes, creating commits, or moving private runtime data.
 
 ## Completion
 

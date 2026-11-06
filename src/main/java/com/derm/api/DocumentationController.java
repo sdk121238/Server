@@ -19,14 +19,17 @@ public class DocumentationController {
     private final Contract contract;
     private final Json json;
 
+    /** 初始化本组件所需的依赖与配置。 */
     public DocumentationController(Contract contract, Json json) {
         this.contract = contract;
         this.json = json;
     }
 
+    /** 将文档入口重定向到本地Swagger调试页面。 */
     @GetMapping({"/swagger-ui.html", "/swagger-ui", "/swagger-ui/"})
     public String page() { return "redirect:/swagger-ui/index.html"; }
 
+    /** 导出当前已实现的接口定义，并补充本机地址和测试示例。 */
     @GetMapping(value = "/v3/api-docs", produces = "application/json")
     @ResponseBody
     public ResponseEntity<JsonNode> documentation(HttpServletRequest request) {
@@ -52,6 +55,7 @@ public class DocumentationController {
         return ResponseEntity.ok().header("Cache-Control", "no-store").body(document);
     }
 
+    /** 生成虚构且互相关联的UUID，为常用请求填充调试示例。 */
     private void addExamples(ObjectNode document) {
         String patient = UUID.randomUUID().toString();
         String lesion = UUID.randomUUID().toString();
@@ -86,10 +90,12 @@ public class DocumentationController {
         example(schemas, "CapturePatch", json.object().put("qualityNote", "Swagger调试完成"));
     }
 
+    /** 为指定Schema写入示例值。 */
     private void example(ObjectNode schemas, String name, JsonNode value) {
         ((ObjectNode) schemas.get(name)).set("example", value);
     }
 
+    /** 补充使用签名票据的图片二进制上传和下载接口。 */
     private void addObjectOperations(ObjectNode paths, String contextPath) {
         ObjectNode objects = json.object();
         for (String method : List.of("put", "get")) {
@@ -134,6 +140,7 @@ public class DocumentationController {
         paths.set("/objects/{objectId}", objects);
     }
 
+    /** 生成图片路径标识或签名票据的参数定义。 */
     private ObjectNode parameter(String name, String in, String description, boolean uuid) {
         ObjectNode parameter = json.object().put("name", name).put("in", in).put("required", true).put("description", description);
         ObjectNode schema = json.object().put("type", "string");

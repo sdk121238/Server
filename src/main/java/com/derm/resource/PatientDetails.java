@@ -13,10 +13,13 @@ public class PatientDetails {
     private final JdbcTemplate db;
     private final Json json;
     private final Clock clock;
+    /** 初始化本组件所需的依赖与配置。 */
     @org.springframework.beans.factory.annotation.Autowired
     public PatientDetails(JdbcTemplate db,Json json) { this(db,json,Clock.system(ZoneId.of("Asia/Shanghai"))); }
+    /** 初始化本组件所需的依赖与配置。 */
     public PatientDetails(JdbcTemplate db,Json json,Clock clock) { this.db=db;this.json=json;this.clock=clock; }
 
+    /** 补齐可空资料并校验电话、出生信息和有效主治医师，协调新旧生日字段。 */
     public void normalize(ObjectNode data,JsonNode patch) {
         for(String field:new String[]{"phoneNumber","gender","birthYearMonth","attendingDoctorId","birthDate"}) if(!data.has(field)) data.putNull(field);
         if(data.hasNonNull("phoneNumber")) {
@@ -49,6 +52,7 @@ public class PatientDetails {
         }
     }
 
+    /** 生成读取视图，动态计算年龄并附加主治医师摘要，不改存储版本。 */
     public ObjectNode present(ObjectNode stored) {
         ObjectNode out=stored.deepCopy();
         for(String field:new String[]{"phoneNumber","gender","birthYearMonth","attendingDoctorId"}) if(!out.has(field)) out.putNull(field);
@@ -62,6 +66,7 @@ public class PatientDetails {
         }
         return out;
     }
+    /** 完整生日按周岁、仅出生年月按整月计算年龄；缺少信息返回null。 */
     public static Integer age(JsonNode patient,LocalDate today) {
         if(patient.hasNonNull("birthDate")) return Period.between(LocalDate.parse(patient.get("birthDate").asText()),today).getYears();
         if(patient.hasNonNull("birthYearMonth")) return (int)(ChronoUnit.MONTHS.between(YearMonth.parse(patient.get("birthYearMonth").asText()),YearMonth.from(today))/12);

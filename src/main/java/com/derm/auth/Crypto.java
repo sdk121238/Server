@@ -15,23 +15,30 @@ public class Crypto {
     private final byte[] key;
     private final SecureRandom random=new SecureRandom();
     private final Json json;
+    /** 初始化签名密钥与JSON工具。 */
     public Crypto(@Value("${app.signing-key}")String secret,Json json) {
         if(secret.length()<32) throw new IllegalStateException("APP_SIGNING_KEY must contain at least 32 characters");
         key=secret.getBytes(StandardCharsets.UTF_8); this.json=json;
     }
+    /** 使用安全随机数生成URL安全的不透明令牌。 */
     public String token() { byte[] bytes=new byte[32]; random.nextBytes(bytes); return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes); }
+    /** 计算SHA-256摘要，供令牌比对、文件及内容校验使用。 */
     public static String hash(byte[] value) {
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value)); } catch(Exception e) { throw new IllegalStateException(e); }
     }
+    /** 计算SHA-256摘要，供令牌比对、文件及内容校验使用。 */
     public static String hash(String value) { return hash(value.getBytes(StandardCharsets.UTF_8)); }
+    /** 计算HMAC-SHA256消息签名。 */
     private byte[] mac(String value) {
         try { Mac mac=Mac.getInstance("HmacSHA256"); mac.init(new SecretKeySpec(key,"HmacSHA256")); return mac.doFinal(value.getBytes(StandardCharsets.UTF_8)); }
         catch(Exception e) { throw new IllegalStateException(e); }
     }
+    /** 对JSON载荷编码并签名，生成不可篡改的票据。 */
     public String sign(JsonNode payload) {
         String text=Base64.getUrlEncoder().withoutPadding().encodeToString(json.write(payload).getBytes(StandardCharsets.UTF_8));
         return text+"."+Base64.getUrlEncoder().withoutPadding().encodeToString(mac(text));
     }
+    /** 校验票据签名、用途和过期时间，失败时返回指定业务错误。 */
     public JsonNode verify(String token,String kind,int errorStatus,String errorCode) {
         try {
             if(token==null||token.length()>4096) throw new IllegalArgumentException();

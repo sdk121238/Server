@@ -38,6 +38,7 @@ for path, method, summary in [
     paths[path][method]['summary'] = summary
 
 schemas = spec['components']['schemas']
+# 收窄指定字段的枚举，使交接快照与当前实现一致。
 def enum(name, field, values):
     schemas[name]['properties'][field]['enum'] = values
 
@@ -92,6 +93,7 @@ used_tags = {tag for ops in paths.values() for op in ops.values() for tag in op.
 spec['tags'] = [tag for tag in spec['tags'] if tag['name'] in used_tags]
 spec['tags'].append({'name': '图片传输'})
 
+# 递归收集Schema引用，供裁剪可达模型使用。
 def refs(value):
     if isinstance(value, dict):
         if '$ref' in value:
@@ -116,9 +118,11 @@ spec['components']['schemas'] = {name: schema for name, schema in schemas.items(
 (DOCS / 'frontend-p0.openapi.json').write_text(json.dumps(spec, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 # Flatten inline object fields as well as documenting all reachable named DTOs.
+# 转义Markdown表格单元格中的特殊字符。
 def cell(value):
     return str(value).replace('|', '&#124;').replace('\n', ' ')
 
+# 将Schema转换成便于阅读的字段类型。
 def typename(schema):
     if '$ref' in schema:
         return schema['$ref'].rsplit('/', 1)[1]
@@ -126,6 +130,7 @@ def typename(schema):
         return 'array<' + typename(schema.get('items', {})) + '>'
     return schema.get('type', 'any') + (f" ({schema['format']})" if 'format' in schema else '')
 
+# 汇总字段的可读限制、枚举和说明。
 def constraints(schema):
     out = ['只读，不可提交'] if schema.get('readOnly') else []
     for key, label in [('minLength', '最短字符'), ('maxLength', '最长字符'), ('minItems', '最少项'), ('maxItems', '最多项'), ('pattern', '格式'), ('default', '默认')]:
@@ -145,6 +150,7 @@ def constraints(schema):
         out.append('额外键的值类型=' + typename(schema['additionalProperties']))
     return cell('；'.join(out) or '—')
 
+# 递归生成对象及内嵌数组字段的字典表格行。
 def rows(schema, prefix=''):
     required = set(schema.get('required', []))
     result = []

@@ -18,9 +18,11 @@ import java.io.*;
 public class ApiController {
     private final Contract contract;private final Json json;private final AuthService auth;private final Writes writes;
     private final ResourceService resources;private final UploadService uploads;private final SyncService sync;
+    /** 初始化本组件所需的依赖与配置。 */
     public ApiController(Contract contract,Json json,AuthService auth,Writes writes,ResourceService resources,UploadService uploads,SyncService sync) {
         this.contract=contract;this.json=json;this.auth=auth;this.writes=writes;this.resources=resources;this.uploads=uploads;this.sync=sync;
     }
+    /** 按合同匹配请求，完成认证与参数校验后分派；写请求进入事务与幂等控制。 */
     @RequestMapping("/**") public ResponseEntity<JsonNode> handle(HttpServletRequest request) throws IOException {
         String method=request.getMethod(),path=request.getRequestURI().substring(request.getContextPath().length()+7);
         var match=contract.match(method,path);var route=match.route();JsonNode op=route.operation();
@@ -59,6 +61,7 @@ public class ApiController {
         if(Set.of("POST","PATCH","DELETE").contains(method)) return writes.run(actor,method,canonicalPath,key,body,RequestIds.id(request),action).response();
         return action.get().response();
     }
+    /** 将已校验的接口路径分派到账号、资源、上传或同步服务。 */
     private ApiResult dispatch(String operation,Map<String,String> p,Actor actor,JsonNode body,HttpServletRequest r) {
         String match=r.getHeader("If-Match");
         return switch(operation) {
@@ -97,10 +100,13 @@ public class ApiController {
             default -> throw ApiException.missing();
         };
     }
+    /** 返回当前实际支持的上传、分页与扩展功能能力。 */
     private ApiResult capabilities() {
         var out=json.object().put("apiVersion","1.1.0").put("maxUploadBytes",ImageFiles.MAX_BYTES).put("multipartEnabled",false).put("maxSyncBatch",0).put("maxPageSize",100).put("cloudDraftsEnabled",false).put("serverAlgorithmsEnabled",false);
         out.set("acceptedMimeTypes",json.array().add("image/jpeg").add("image/png"));return ApiResult.ok(out);
     }
+    /** 解析分页大小，拒绝超出1至100范围的输入。 */
     private int limit(HttpServletRequest r,int fallback) { String value=r.getParameter("limit");if(value==null) return fallback;try { int parsed=Integer.parseInt(value);if(parsed<1||parsed>100) throw new NumberFormatException();return parsed; } catch(NumberFormatException e) { throw ApiException.invalid("limit范围为1至100"); } }
+    /** 解析可选的非负毫秒时间参数。 */
     private Long time(HttpServletRequest r,String name) { String value=r.getParameter(name);if(value==null) return null;try {long parsed=Long.parseLong(value);if(parsed<0) throw new NumberFormatException();return parsed;}catch(NumberFormatException e) {throw ApiException.invalid(name+"必须为非负毫秒时间");} }
 }

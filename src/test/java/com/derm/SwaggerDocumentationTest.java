@@ -22,6 +22,7 @@ class SwaggerDocumentationTest {
     @Autowired MockMvc http;
     @Autowired ObjectMapper json;
 
+    /** 验证Swagger页面和本地静态资源无需认证即可访问。 */
     @Test void swaggerPageAndBundledAssetsArePublicAndAvailableLocally() throws Exception {
         http.perform(get("/swagger-ui.html")).andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/swagger-ui/index.html"));
@@ -35,6 +36,7 @@ class SwaggerDocumentationTest {
         http.perform(get("/webjars/swagger-ui/5.32.15/swagger-ui.css")).andExpect(status().isOk());
     }
 
+    /** 验证展示文档只包含已实现接口且不修改运行合同。 */
     @Test void documentationUsesLocalServerAndOnlyImplementedOperationsWithoutChangingContract() throws Exception {
         var response=http.perform(get("/v3/api-docs")).andExpect(status().isOk())
             .andExpect(header().string("Cache-Control", "no-store"))

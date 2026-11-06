@@ -31,12 +31,14 @@ class BackendIntegrationTest {
     @Autowired com.derm.auth.AuthService auth;
     @Autowired com.derm.resource.ResourceService resources;
 
+    /** 验证健康接口公开且只返回最小健康信息。 */
     @Test void healthIsPublicAndMinimal() throws Exception {
         http.perform(get("/api/v1/system/health")).andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("UP")).andExpect(jsonPath("$.serverTime").isNumber())
             .andExpect(header().exists("X-Request-Id"));
     }
 
+    /** 验证登录提示不能将普通患者提升为医生。 */
     @Test void loginDoesNotGrantRequestedHospitalRole() throws Exception {
         JsonNode tokens = login();
         assertThat(tokens.at("/profile/role").asText()).isEqualTo("PATIENT");
@@ -46,6 +48,7 @@ class BackendIntegrationTest {
             .andExpect(jsonPath("$.passwordHash").doesNotExist());
     }
 
+    /** 验证旧刷新令牌重放会撤销整个令牌族。 */
     @Test void refreshReplayRevokesEntireFamily() throws Exception {
         JsonNode first = login();
         JsonNode second = body(http.perform(post("/api/v1/auth/refresh").contentType("application/json")
@@ -58,6 +61,7 @@ class BackendIntegrationTest {
             .andExpect(status().isUnauthorized());
     }
 
+    /** 验证错误凭据及匿名访问受保护接口均被拒绝。 */
     @Test void invalidCredentialsAndAnonymousAccessAreRejected() throws Exception {
         http.perform(post("/api/v1/auth/login").contentType("application/json")
             .content("{\"account\":\"test-owner\",\"password\":\"wrong\"}"))
@@ -65,6 +69,7 @@ class BackendIntegrationTest {
         http.perform(get("/api/v1/patients")).andExpect(status().isUnauthorized());
     }
 
+    /** 验证账号隔离、幂等重试及乐观锁冲突。 */
     @Test void ownershipIdempotencyAndOptimisticLocking() throws Exception {
         String token = token(); String id = UUID.randomUUID().toString(); String key = UUID.randomUUID().toString();
         Map<String,Object> patient = Map.of("id",id,"name","随访患者");
@@ -93,6 +98,7 @@ class BackendIntegrationTest {
             .andExpect(status().isNotFound());
     }
 
+    /** 验证快照冻结和级联删除事件的顺序。 */
     @Test void frozenSnapshotAndCascadeDeletionProduceOrderedChanges() throws Exception {
         String token = token(); String patient = create(token,"/patients",Map.of("id",UUID.randomUUID(),"name","同步患者")).get("id").asText();
         String lesion = create(token,"/lesions",Map.of("id",UUID.randomUUID(),"patientId",patient,"bodySite","手背")).get("id").asText();
@@ -118,6 +124,7 @@ class BackendIntegrationTest {
             .andExpect(status().isGone());
     }
 
+    /** 验证真实图片上传、采集创建及嵌套补丁校验。 */
     @Test void actualImageUploadCaptureAndMergePatchValidation() throws Exception {
         String token = token();
         String patient = create(token,"/patients",Map.of("id",UUID.randomUUID(),"name","图片患者")).get("id").asText();
@@ -157,6 +164,7 @@ class BackendIntegrationTest {
         http.perform(get("/api/v1/files/"+fileId).header("Authorization",bearer(otherToken()))).andExpect(status().isNotFound());
     }
 
+    /** 验证并发重试只提交一个资源和一条同步事件。 */
     @Test void concurrentRetriesCommitOneResourceAndOneSyncEvent() throws Exception {
         String token=token(),id=UUID.randomUUID().toString(),key=UUID.randomUUID().toString();
         byte[] request=json.writeValueAsBytes(Map.of("id",id,"name","并发重试"));
@@ -172,6 +180,7 @@ class BackendIntegrationTest {
         assertThat(matches).isEqualTo(1);
     }
 
+    /** 验证退出后访问与刷新令牌均失效。 */
     @Test void logoutRevokesAccessAndRefresh() throws Exception {
         JsonNode first=login();String access=first.get("accessToken").asText(),refresh=first.get("refreshToken").asText();
         http.perform(post("/api/v1/auth/logout").header("Authorization",bearer(access)).contentType("application/json")
@@ -181,6 +190,7 @@ class BackendIntegrationTest {
             .andExpect(status().isUnauthorized());
     }
 
+    /** 验证导入范围受限且失败写入不会残留资源。 */
     @Test void importPlanRestrictsPatientIdsAndFailedWriteRollsBack() throws Exception {
         String token=token(),allowed=UUID.randomUUID().toString(),denied=UUID.randomUUID().toString();
         JsonNode plan=create(token,"/offline-imports",Map.of("clientDatasetId",UUID.randomUUID(),"confirmedPatientIds",List.of(allowed)));
@@ -192,6 +202,7 @@ class BackendIntegrationTest {
         create(token,"/patients",Map.of("id",allowed,"name","确认导入","importId",plan.get("id").asText()));
     }
 
+    /** 验证跨账号游标及不合法合同字段被拒绝。 */
     @Test void crossAccountPaginationAndSchemaErrorsAreRejected() throws Exception {
         String token=token();
         create(token,"/patients",Map.of("id",UUID.randomUUID(),"name","分页甲"));
@@ -208,6 +219,7 @@ class BackendIntegrationTest {
             .andExpect(status().isUnprocessableEntity());
     }
 
+    /** 验证含重复字段的JSON请求被拒绝。 */
     @Test void duplicateJsonMembersAreRejected() throws Exception {
         String token=token();
         http.perform(post("/api/v1/patients").header("Authorization",bearer(token)).header("Idempotency-Key",UUID.randomUUID())
@@ -215,6 +227,7 @@ class BackendIntegrationTest {
             .andExpect(status().isBadRequest());
     }
 
+    /** 验证UUID大小写规范化且不会重复创建同一资源。 */
     @Test void mixedCaseUuidAddressesSameResourceAndCannotDuplicateIt() throws Exception {
         String token=token(),id=UUID.randomUUID().toString();
         create(token,"/patients",Map.of("id",id,"name","UUID身份"));
@@ -225,6 +238,7 @@ class BackendIntegrationTest {
             .andExpect(status().isConflict());
     }
 
+    /** 验证同步游标不会跳过尚未提交的早期事务。 */
     @Test void uncommittedSyncPositionsCannotHideEarlierTransactions() throws Exception {
         String token=otherToken();var actor=auth.authenticate(bearer(token));
         JsonNode snapshot=create(token,"/sync/snapshots",null);
@@ -253,6 +267,7 @@ class BackendIntegrationTest {
         }
     }
 
+    /** 验证上传失败、签名过期及跨患者图片引用被拒绝。 */
     @Test void uploadFailureExpiryAndCrossPatientReferences() throws Exception {
         String token=token(),patient=create(token,"/patients",Map.of("id",UUID.randomUUID(),"name","校验患者")).get("id").asText();
         ByteArrayOutputStream out=new ByteArrayOutputStream();ImageIO.write(new BufferedImage(20,20,BufferedImage.TYPE_INT_RGB),"png",out);byte[] png=out.toByteArray();
@@ -271,6 +286,7 @@ class BackendIntegrationTest {
             .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("INVALID_REFERENCE"));
     }
 
+    /** 验证并发刷新重放连同获胜会话一起撤销。 */
     @Test void simultaneousRefreshReplayRevokesTheWinningSession() throws Exception {
         JsonNode tokens=login();byte[] request=json.writeValueAsBytes(Map.of("refreshToken",tokens.get("refreshToken").asText()));
         List<MvcResult> results=new ArrayList<>();
@@ -284,6 +300,7 @@ class BackendIntegrationTest {
             .header("Authorization",bearer(body(result).get("accessToken").asText()))).andExpect(status().isUnauthorized());
     }
 
+    /** 验证修改密码撤销其他会话且资料修改受ETag保护。 */
     @Test void passwordChangeRevokesOtherSessionsAndProfileUsesEtag() throws Exception {
         String first=otherToken();JsonNode profile=body(http.perform(get("/api/v1/auth/me").header("Authorization",bearer(first))).andExpect(status().isOk()).andReturn());
         String account=profile.get("account").asText();
@@ -304,13 +321,17 @@ class BackendIntegrationTest {
             .content(json.writeValueAsBytes(Map.of("account",account,"password","Changed-test-password-839!")))).andExpect(status().isOk());
     }
 
+    /** 发送创建请求并检查201响应，返回新资源。 */
     JsonNode create(String token,String path,Object value) throws Exception {
         var req=post("/api/v1"+path).header("Authorization",bearer(token)).header("Idempotency-Key",UUID.randomUUID());
         if(value!=null) req.contentType("application/json").content(json.writeValueAsBytes(value));
         return body(http.perform(req).andExpect(status().isCreated()).andReturn());
     }
+    /** 获取默认测试账号的访问令牌。 */
     String token() throws Exception { return login().get("accessToken").asText(); }
+    /** 为测试令牌添加Bearer前缀。 */
     String bearer(String token) { return "Bearer "+token; }
+    /** 创建或登录另一测试账号，供账号隔离断言使用。 */
     String otherToken() throws Exception {
         String account="other-"+UUID.randomUUID();
         db.update("INSERT INTO users(id,account,normalized_account,display_name,password_hash,status,revision,generation,sync_position,created_at,updated_at) VALUES(?,?,?,?,?,'ACTIVE',1,1,0,1,1)",
@@ -319,10 +340,12 @@ class BackendIntegrationTest {
             .andExpect(status().isOk()).andReturn()).get("accessToken").asText();
     }
 
+    /** 登录默认测试账号并返回完整令牌响应。 */
     JsonNode login() throws Exception {
         return body(http.perform(post("/api/v1/auth/login").contentType("application/json")
             .content("{\"account\":\"test-owner\",\"password\":\"Owner-test-password-928!\",\"requestedRole\":\"HOSPITAL_STAFF\"}"))
             .andExpect(status().isOk()).andReturn());
     }
+    /** 解析测试HTTP响应的JSON正文。 */
     JsonNode body(MvcResult result) throws Exception { return json.readTree(result.getResponse().getContentAsByteArray()); }
 }

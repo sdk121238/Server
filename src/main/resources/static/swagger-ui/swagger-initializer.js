@@ -1,3 +1,4 @@
+// 启动调试台：加载接口定义，绑定导航事件并挂载Swagger测试表单。
 window.addEventListener("load", async function () {
   "use strict";
   const navigation = window.SwaggerNavigation;
@@ -9,6 +10,7 @@ window.addEventListener("load", async function () {
   const menuButton = document.getElementById("nav-toggle");
   let operations = [], selected = null, openedKey = null, updateScheduled = false;
 
+  // 打开或关闭窄屏导航，并同步无障碍展开状态。
   function menu(open) {
     document.body.classList.toggle("nav-open", open);
     menuButton.setAttribute("aria-expanded", String(open));
@@ -24,6 +26,7 @@ window.addEventListener("load", async function () {
     if (event.key === "Escape") menu(false);
   });
 
+  // 根据搜索结果重建模块导航，保留当前选中标记。
   function renderNavigation() {
     const visible = navigation.filterOperations(operations, search.value);
     document.getElementById("nav-summary").textContent = search.value.trim()
@@ -81,6 +84,7 @@ window.addEventListener("load", async function () {
   }
 
   // Leave Swagger forms mounted so switching preserves request inputs and responses.
+  // 只显示选中的Swagger操作，保留已挂载表单以保存输入和响应。
   function revealSelection() {
     updateScheduled = false;
     if (!selected) return;
@@ -98,11 +102,13 @@ window.addEventListener("load", async function () {
       }
     }
   }
+  // 合并DOM变更，在下一帧更新选中接口的显示状态。
   function scheduleSelection() {
     if (updateScheduled) return;
     updateScheduled = true;
     window.requestAnimationFrame(revealSelection);
   }
+  // 同步导航、标题、授权提示和链接，并将测试区滚动到顶部。
   function selectOperation(operation, updateHash) {
     selected = operation;
     openedKey = null;
