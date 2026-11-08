@@ -18,6 +18,14 @@
 
 此配置运行的是已打包JAR。修改Java代码后，需要先重新打包：在IDEA右侧点 **Maven → followup-server → Lifecycle → package**，双击 `package`，看到 **BUILD SUCCESS** 后再运行 **Backend Local - JAR**。若右侧没有Maven窗口，可用 **View → Tool Windows → Maven** 打开。首次使用Maven构建前，在 **File → Project Structure → Project** 中把SDK选为21；若没有21，选择 **Add SDK → JDK**，指定已有路径 `D:\搜狗高速下载\IntelliJ IDEA 2025.1.3\jbr`。
 
+## 在IDEA直接运行源码和调试
+
+选择顶部运行配置 **Backend Local - Source**，然后点击绿色Run或Debug。此配置使用 `com.derm.ServerApplication`、项目模块、项目根目录、已有JDK21，并沿用JAR配置的数据库与签名环境变量。本机配置文件是被Git忽略的 `.idea/runConfigurations/Backend_Source.xml`，含凭据，不要外发。
+
+IDEA临时生成的 `ServerApplication` 配置不会自动加载 `scripts/local.ps1`。若未设置环境变量，会使用application.yml默认的3306数据库地址、空数据库密码及空签名密钥。源码运行应选择已准备的 **Backend Local - Source**；修改Java代码后使用IDEA构建即可，无需先打成JAR。
+
+启动前仍需先运行3307项目MySQL。JAR和源码默认都监听8080，只运行一种；若后台脚本启动的JAR正在运行，先用 `scripts/server.ps1 stop` 停止，再在IDEA运行源码。若是IDEA启动的JAR，则在对应Run窗口点击红色Stop。
+
 ## 不打开IDEA：文件资源管理器启动
 
 在 `scripts` 文件夹中，先右键 `dev-db.ps1` →“使用 PowerShell 运行”，再右键 `server.ps1` →“使用 PowerShell 运行”。程序在后台运行，浏览器访问相同健康检查地址。日志文件是 `.codex-build/server.stdout.log`，可用记事本打开。

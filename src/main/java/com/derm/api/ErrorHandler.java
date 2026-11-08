@@ -9,7 +9,9 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.slf4j.LoggerFactory;
 
 @RestControllerAdvice
-public class ErrorHandler {
+public class
+
+ErrorHandler {
     private final Json json;
     /** 初始化本组件所需的依赖与配置。 */
     public ErrorHandler(Json json) { this.json=json; }
